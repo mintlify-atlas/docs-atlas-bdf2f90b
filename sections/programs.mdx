@@ -1,0 +1,186 @@
+---
+title: "Programs Section: Training Program Accordion List"
+sidebarTitle: "Programs"
+description: "The Programs section renders an expandable list of training programs from a JavaScript array, with scroll-triggered spring reveals on each row."
+---
+
+The Programs section (`id="programs"`) presents Baseline's four training offerings as a clean, numbered list. Each row is a full-width anchor link with a number, name, description, and an arrow icon that hops forward on hover. Every row is built entirely in JavaScript from a compact data array and springs into view with a staggered delay as it enters the viewport.
+
+## HTML structure
+
+The HTML for this section is deliberately minimal — only the container elements are written by hand. The list itself is injected at runtime:
+
+```html
+<section class="programs" id="programs">
+  <span class="eyebrow dark"><i></i>Training programs</span>
+  <h2 class="h-stack" data-lines="Built for|every level"></h2>
+  <div class="prog-list" id="progList"></div>
+</section>
+```
+
+The section heading uses the `data-lines` stacked-lines system: the pipe-delimited string `"Built for|every level"` is split into two `.clip > span` pairs and animated in when the element crosses the viewport threshold.
+
+## `programs` data array
+
+Each entry is a four-element tuple: `[number, name, description, href]`.
+
+```js
+const programs = [
+  ["01", "Junior Development",  "Fundamentals, footwork, and match play for ages 6–14.",          "#junior"],
+  ["02", "Performance Squad",   "High-volume training for competitive and ranked players.",        "#performance"],
+  ["03", "Adult Clinics",       "Small-group sessions to sharpen technique and fitness.",          "#adult"],
+  ["04", "Private Coaching",    "One-to-one sessions tailored to your goals and schedule.",        "#private"]
+];
+```
+
+<Note>
+The `href` values (e.g. `#junior`) are anchor links. If you add a dedicated program detail section with a matching `id`, Lenis smooth-scroll will animate to it automatically via the global anchor-click listener.
+</Note>
+
+## DOM construction
+
+Each program row is built with `document.createElement` and `innerHTML`, then appended to `#progList`:
+
+```js
+const progList = document.getElementById("progList");
+
+programs.forEach(([num, name, desc, href], i) => {
+  const a = document.createElement("a");
+  a.className = "prog-row";
+  a.href = href;
+
+  a.innerHTML = `
+    <div class="prog-inner">
+      <span class="prog-num">${num}</span>
+      <span>
+        <span class="prog-name" style="display:block">${name}</span>
+        <span class="prog-desc" style="display:block">${desc}</span>
+      </span>
+      <span class="prog-arrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M13 6l6 6-6 6"/>
+        </svg>
+      </span>
+    </div>`;
+
+  progList.appendChild(a);
+  // … spring reveal and hover wired here (see below)
+});
+```
+
+The resulting DOM for a single row looks like this:
+
+```html
+<a class="prog-row" href="#junior">
+  <div class="prog-inner">
+    <span class="prog-num">01</span>
+    <span>
+      <span class="prog-name">Junior Development</span>
+      <span class="prog-desc">Fundamentals, footwork, and match play for ages 6–14.</span>
+    </span>
+    <span class="prog-arrow">
+      <!-- arrow SVG -->
+    </span>
+  </div>
+</a>
+```
+
+## Per-row spring reveal
+
+After appending each row, a Spring is created that targets the `.prog-inner` element (not the outer `<a>`) so the border-top hairline of `.prog-row` stays visible immediately while the content rises:
+
+```js
+const inner = a.firstElementChild; // .prog-inner
+const sp = mkSpring(inner, { opacity: 0, y: 26 }, { opacity: 1, y: 0 }, [190, 26]);
+
+const io = new IntersectionObserver(en => {
+  if (en[0].isIntersecting) {
+    setTimeout(() => sp.to({ opacity: 1, y: 0 }), i * 90); // stagger by row index
+    io.disconnect();
+  }
+}, { threshold: 0.2 });
+
+io.observe(a); // watch the outer <a> so the trigger fires early
+```
+
+| Parameter | Value | Effect |
+|---|---|---|
+| `from` | `{ opacity: 0, y: 26 }` | Row starts invisible, 26 px below final position |
+| `to` | `{ opacity: 1, y: 0 }` | Row slides up and fades in |
+| Spring config | `[190, 26]` | tension 190, friction 26 — snappy but not abrupt |
+| Stagger | `i * 90 ms` | Each successive row is delayed by 90 ms |
+
+<Tip>
+Rows 0–3 stagger at 0 ms, 90 ms, 180 ms, and 270 ms. If you add many programs, consider capping the stagger (e.g. `Math.min(i * 90, 360)`) to avoid a long wait for rows near the bottom.
+</Tip>
+
+## Arrow hover animation
+
+Each row also gets an interactive hover spring on its `.prog-arrow` element. When the pointer enters the `<a>`, the arrow nudges to the right and becomes fully opaque:
+
+```js
+const arrow = a.querySelector(".prog-arrow");
+hover(a, arrow, { x: 0, opacity: 0.55 }, { x: 8, opacity: 1 }, [300, 20]);
+```
+
+The hover system listens to both `pointerenter`/`pointerleave` and `focus`/`blur`, so keyboard users see the same animation.
+
+## CSS layout
+
+```css
+.programs {
+  background: var(--surface);
+  padding: 6rem 1.5rem;
+}
+
+.prog-row {
+  display: block;
+  border-top: 1px solid var(--hairline);
+}
+.prog-row:last-child {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.prog-inner {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  padding: 1.75rem 0;
+}
+
+.prog-num   { width: 2.5rem; font-size: .875rem; font-weight: 500; color: var(--ink-soft); }
+.prog-name  { font-size: 1.5rem; font-weight: 500; letter-spacing: -.02em; }
+.prog-desc  { font-size: .875rem; color: var(--ink-soft); margin-top: .25rem; }
+.prog-arrow {
+  margin-left: auto;
+  width: 2.75rem; height: 2.75rem;
+  border-radius: 62.5rem;
+  border: 1px solid var(--hairline);
+  opacity: .55;
+}
+```
+
+## How to add or edit a program
+
+<Steps>
+  <Step title="Locate the programs array">
+    Find `const programs = [...]` in the `<script type="module">` block of `index.html`.
+  </Step>
+  <Step title="Append or edit a row tuple">
+    Each entry is `["NN", "Name", "One-sentence description.", "#anchor"]`. To add a fifth program:
+    ```js
+    ["05", "Cardio Tennis", "High-energy group drills with music and match formats.", "#cardio"]
+    ```
+  </Step>
+  <Step title="Add a matching section id (optional)">
+    If you want the row's link to scroll to a detail section, add `id="cardio"` to that section element in the HTML. Lenis will handle the smooth scroll automatically.
+  </Step>
+  <Step title="Renumber if needed">
+    The number string (first element) is purely decorative — it is rendered as-is. You can use any label, e.g. `"NEW"` or `"05"`.
+  </Step>
+</Steps>
+
+<Warning>
+Editing the `programs` array after the page has loaded has no effect because the DOM is built once at initialisation. If you are rendering Baseline server-side or via a build step, make sure the array is updated before the script runs.
+</Warning>

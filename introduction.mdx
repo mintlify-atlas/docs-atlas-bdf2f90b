@@ -1,0 +1,143 @@
+---
+title: "Baseline: A Zero-Build Tennis Club Landing Page"
+sidebarTitle: "Introduction"
+description: "Baseline is a single-file marketing landing page for a tennis club and academy. No bundler, no framework — one HTML file with inline CSS and vanilla JS."
+---
+
+Baseline is a ready-to-customise marketing landing page for a members' tennis club and academy. Everything — markup, styles, animation logic, and content data — lives in a single `index.html` file. There is no bundler, no npm install, and no framework to learn. It is aimed at developers who want a polished, production-quality starting point they can fork, edit in any text editor, and ship by uploading one file to a static host.
+
+## Design Philosophy
+
+Baseline was built around two constraints: **zero local dependencies** and **no build step**. The only external runtime is [Lenis](https://github.com/darkroomengineering/lenis) for smooth scrolling, and that is loaded straight from jsDelivr via a native `<script type="importmap">` — no bundler needed. Every other animation, layout, and interaction is hand-rolled vanilla JavaScript and inline CSS. The result is a file you can open in a text editor, understand end-to-end in an afternoon, and deploy by copying one file to a server.
+
+## Features
+
+<CardGroup cols={2}>
+  <Card
+    title="Spring Animation Engine"
+    icon="spring"
+    href="/customization/spring-engine"
+  >
+    A hand-rolled `mkSpring` / `Spring` class drives every UI transition — modals, menus, scroll reveals, hover effects, and the page loader. No GSAP or Framer Motion required.
+  </Card>
+  <Card
+    title="Smooth Scroll (Lenis)"
+    icon="arrow-down"
+    href="/customization/smooth-scroll"
+  >
+    Lenis `v1.1.18` is loaded as an ES module via a native import map. Smooth-wheel scrolling is active by default, with `lock()` / `unlock()` helpers used to pause scroll while overlays are open.
+  </Card>
+  <Card
+    title="Fluid Type Scale"
+    icon="text-size"
+    href="/customization/typography"
+  >
+    The root `font-size` is set in `vw` units at four breakpoints so nearly all sizing in `rem` scales continuously with the viewport rather than jumping at fixed points.
+  </Card>
+  <Card
+    title="Accessible Modals & Menus"
+    icon="universal-access"
+    href="/customization/accessibility"
+  >
+    The mobile menu and booking modal both carry `role="dialog"` and `aria-modal="true"`. The `<main>` element is set `inert` while an overlay is open, keeping keyboard and screen-reader users within the active layer.
+  </Card>
+  <Card
+    title="CSS Design Tokens"
+    icon="palette"
+    href="/customization/css-variables"
+  >
+    All colours, radii, and surface values are defined as CSS custom properties on `:root`. Change `--brand`, `--brand-deep`, or `--surface` in one place and the whole page updates instantly.
+  </Card>
+  <Card
+    title="Scroll-Triggered Reveals"
+    icon="eye"
+    href="/customization/animations"
+  >
+    Every section element carries `data-inview` / `data-to` JSON attributes. An `IntersectionObserver` feeds those values into the spring engine, producing smooth fade-and-rise entrances with configurable tension, friction, and stagger delays.
+  </Card>
+</CardGroup>
+
+## Stack
+
+### Lenis Smooth Scroll
+
+Lenis is the only third-party dependency. It is declared in a native ES module import map so the browser resolves it directly from jsDelivr — no npm, no bundler, no lock file:
+
+```html
+<script type="importmap">
+  { "imports": { "lenis": "https://cdn.jsdelivr.net/npm/lenis@1.1.18/+esm" } }
+</script>
+```
+
+The module is then imported at the top of the inline `<script type="module">`:
+
+```javascript
+import Lenis from "lenis";
+
+const lenis = new Lenis({ smoothWheel: true });
+function raf(t) { lenis.raf(t); requestAnimationFrame(raf); }
+requestAnimationFrame(raf);
+```
+
+### Onest Typeface
+
+The [Onest](https://fonts.google.com/specimen/Onest) typeface is loaded at weights `400` and `500` from Google Fonts. It is applied to `body` with a `system-ui` fallback:
+
+```css
+body {
+  font-family: "Onest", system-ui, sans-serif;
+  font-weight: 400;
+}
+```
+
+### Hand-Rolled Spring Engine
+
+There is no GSAP, Framer Motion, or any animation library. All motion is driven by a small `Spring` class and a `mkSpring` factory function written directly in the page. The engine integrates spring physics (configurable `tension` and `friction`) on every `requestAnimationFrame` tick and writes CSS `transform` and `opacity` values directly to the DOM.
+
+The public surface is simply:
+
+```javascript
+// mkSpring(element, fromState, toState, [tension, friction], applyFn?)
+const sp = mkSpring(el, { opacity: 0, y: 24 }, { opacity: 1, y: 0 }, [200, 26]);
+
+// Animate to a new target at any time:
+sp.to({ opacity: 1, y: 0 });
+```
+
+`tension` and `friction` map directly to the spring coefficients — higher tension means snappier motion, higher friction means less overshoot.
+
+### Fluid Type Scale
+
+Rather than jumping at media-query breakpoints, the root `font-size` is expressed as a `vw` fraction at four viewport widths, so virtually all `rem`-based sizing scales continuously:
+
+```css
+html { font-size: 16px }                          /* baseline / large desktop */
+@media (max-width: 1920px) { html { font-size: 0.833333vw } }
+@media (max-width: 1440px) { html { font-size: 1.111111vw } }
+@media (max-width: 1024px) { html { font-size: 1.5625vw  } }
+@media (max-width: 640px)  { html { font-size: 4.444444vw } }
+```
+
+## Known Limitations
+
+<Warning>
+  **Baseline is a prototype/demo.** Be aware of the following before shipping to production:
+
+  - **Placeholder content.** All copy, statistics, testimonial names, and image URLs are stand-in values — replace them before going live.
+  - **No 320 px verification.** The layout has not been thoroughly tested at a 320 px viewport width. Re-check at that size before launch.
+  - **Single-file architecture.** The intentional single-file approach is right for this prototype stage, but if the project grows it is a good candidate to split into partials with a lightweight build step.
+</Warning>
+
+## Section Overview
+
+The page is organised into seven sections rendered top-to-bottom inside a single `<main>` element, plus a slide-in mobile menu overlay and a "Book a Visit" modal — both driven by the same spring engine.
+
+| Section | Purpose |
+|---|---|
+| **Hero** | Full-viewport opener with a parallax court image, the animated headline "Own The Court", quick member stats, and a court-series gear slider |
+| **Trust** | Club credibility — a `100%` coaching stat badge, ghost-text word reveal, and a carousel of three coaches with names and roles |
+| **Programs** | Scrollable list of the four training programs: Junior Development, Performance Squad, Adult Clinics, and Private Coaching |
+| **Facilities** | Two-column grid showcasing the club's courts (Redline Clay and Harbor Court) with hover-scale image cards |
+| **Stats** | Full-bleed dark section displaying four club numbers: 24 coaches, 12 courts, 9K+ members, and 15 years in operation |
+| **Testimonials** | Three member quote cards with spring-powered hover lift and staggered scroll-in entrance |
+| **Footer / CTA** | "Ready to play?" booking call-to-action, sitemap columns, social links, contact details, and legal nav |

@@ -1,0 +1,225 @@
+---
+title: "Hero Section: Full-Viewport Opening Banner"
+sidebarTitle: "Hero"
+description: "The Baseline hero fills the viewport with a parallax background, animated headline, tagline, gear slider, and membership card — all driven by the spring engine."
+---
+
+The Hero is the very first thing visitors see: a full-viewport section (`id="top"`) that layers a parallax photograph, a dark gradient, the site header and navigation, a large spring-animated headline, a stacked tagline, a gear/collection slider, and a membership stat card. Every visual element enters with a coordinated spring animation triggered by the page loader's `ready()` function, so nothing appears until fonts and the hero image are loaded.
+
+## HTML structure
+
+The section uses a three-tier vertical layout: the fixed `hero-bg` layer sits below everything, the `<header>` sits at the top of the flex column, and `.hero-bottom` is pushed to the bottom with `margin-top: auto`.
+
+```html
+<section class="hero" id="top">
+
+  <!-- Layer 1: parallax background -->
+  <div class="hero-bg">
+    <div class="hero-plate" id="heroPlate">
+      <img
+        src="https://api.getlayers.ai/storage/v1/object/public/public/assets/baseline-88535e4000/hero/hero-court.webp"
+        alt="Player lunging for a shot on a hard court"
+        fetchpriority="high"
+        loading="eager"
+      >
+    </div>
+    <div class="hero-grad"></div>
+  </div>
+
+  <!-- Layer 2: header / nav -->
+  <header class="hdr">
+    <nav class="hdr-nav">
+      <a href="#programs">Programs &amp; Coaches</a>
+      <a href="#facilities">Club &amp; Events</a>
+    </nav>
+    <a href="#top" class="brand">
+      <!-- tennis-ball SVG icon -->
+      <span>Baseline</span>
+    </a>
+    <div class="hdr-right">
+      <button class="booktxt" data-open-modal>Book a Visit</button>
+      <button class="burger" aria-label="Open menu" id="burger"><i></i><i></i></button>
+    </div>
+  </header>
+
+  <!-- Layer 3: animated headline -->
+  <div class="hero-title-wrap">
+    <h1 class="hero-title" id="heroTitle" data-text="Own The Court"></h1>
+  </div>
+
+  <!-- Layer 4: bottom cluster (tagline + slider + membership card) -->
+  <div class="hero-bottom">
+    <p class="tagline" id="heroTag"></p>
+    <div class="hero-cluster">
+      <div class="slider" id="slider">
+        <div class="glass slide-card" id="slideCard"></div>
+        <div class="cdots light" id="slideDots"></div>
+      </div>
+      <div class="glass member" id="memberCard">
+        <div class="member-col">
+          <span class="member-val">9K+</span>
+          <div class="dots-row">
+            <span style="background:#5790e6"></span>
+            <span style="background:#c2e029"></span>
+            <span style="background:#0b6e97"></span>
+            <span style="background:#ffffff"></span>
+          </div>
+          <span class="member-cap">Members on court</span>
+        </div>
+        <img
+          src="https://api.getlayers.ai/storage/v1/object/public/public/assets/baseline-88535e4000/1.webp"
+          alt="Player waiting to return on a clay court"
+          loading="lazy"
+        >
+      </div>
+    </div>
+  </div>
+
+</section>
+```
+
+<Note>
+The `<h1>` and `<p class="tagline">` are intentionally empty in the HTML. Both are populated and animated entirely in JavaScript once the page has loaded.
+</Note>
+
+## Background: parallax plate and gradient overlay
+
+The `.hero-plate` `<div>` is absolutely positioned and deliberately taller than the viewport (`height: 132%`, `top: -16%`) so it can scroll vertically without revealing a gap. The JavaScript `parallaxFrame()` function maps the section's scroll progress (`0 → 1`) to a Y-translation of `0% → 12%`, creating the depth effect.
+
+```js
+// Registers the heroPlate element for parallax
+addParallax(document.getElementById("heroPlate"), 0, 12, "y");
+```
+
+The `.hero-grad` overlay is a CSS `linear-gradient` that darkens the top and bottom edges of the photo while keeping the centre relatively bright:
+
+```css
+.hero-grad {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(15,47,99,.65),
+    rgba(15,47,99,.35),
+    rgba(15,47,99,.75)
+  );
+}
+```
+
+**To swap the background image**, update the `src` attribute of the `<img>` inside `#heroPlate`. Keep `fetchpriority="high"` and `loading="eager"` on the hero image so it is never lazy-loaded.
+
+## `heroTitle` — wordClip reveal
+
+The headline "Own The Court" is built at runtime with `wordClips()`, which wraps each word in a `.clip > span` pair. The outer `.clip` hides overflow; the inner `<span>` starts translated 115 % downward and fades in.
+
+```js
+const heroTitleEl = document.getElementById("heroTitle");
+const heroTitleNodes = wordClips(heroTitleEl, "Own The Court");
+```
+
+The animation fires inside `ready()` — the function that runs after the loader exits:
+
+```js
+playClips(heroTitleNodes, { stagger: 140, dur: 1100 });
+```
+
+Each word enters 140 ms after the previous one, taking 1 100 ms to complete, using the `easeOutExpo` curve.
+
+## `heroTag` — stackedLines reveal
+
+The tagline "Show Up, / Level Up" uses `stackedLines()`, which builds one `.clip > span` per line so each line slides up independently:
+
+```js
+const heroTagEl = document.getElementById("heroTag");
+const heroTagNodes = stackedLines(heroTagEl, ["Show Up,", "Level Up"]);
+
+// fired inside ready():
+playClips(heroTagNodes, { base: 350, stagger: 110, dur: 900 });
+```
+
+The `base: 350` offset ensures the tagline starts after the headline is well under way.
+
+## `collections` slider
+
+The gear slider cycles through three product cards. Each entry holds an image URL, brand label, title, CTA text, and alt string:
+
+```js
+const collections = [
+  {
+    img: `${BASE}/2.webp`,
+    brand: "Baseline Pro",
+    title: "Featured Gear",
+    cta: "Shop the kit",
+    alt: "Player driving a backhand on a hard court"
+  },
+  {
+    img: `${BASE}/3.webp`,
+    brand: "Court Series",
+    title: "Summer Drop",
+    cta: "View the line",
+    alt: "Player stretching for a forehand on clay"
+  },
+  {
+    img: `${BASE}/5.webp`,
+    brand: "Academy Kit",
+    title: "Junior Range",
+    cta: "Browse juniors",
+    alt: "Player set in a ready stance on clay"
+  }
+];
+```
+
+`renderSlide(i)` writes the card HTML and re-renders the dot indicators. `setSlide(i)` springs the card to `{ opacity: 0, y: 16, scale: 0.96 }`, swaps the content after 260 ms, then springs back to `{ opacity: 1, y: 0, scale: 1 }`. Autoplay advances the index every 3 800 ms:
+
+```js
+autoplayTimer = setInterval(() => setSlide(slideIdx + 1), 3800);
+```
+
+<Tip>
+To add a new gear slide, append an object to the `collections` array following the same `{ img, brand, title, cta, alt }` shape. The dot indicators and autoplay timer update automatically.
+</Tip>
+
+## Membership card
+
+The `.member` card (`#memberCard`) is a static glass widget displaying the "9K+ Members on court" metric alongside a small portrait image and four coloured dots representing member categories. It spring-animates into view shortly after the slider:
+
+```js
+const memberSp = mkSpring(memberEl, {opacity:0, y:28}, {opacity:1, y:0}, [200, 26]);
+// fired inside ready() at 780 ms delay:
+setTimeout(() => memberSp.to({opacity:1, y:0}), 780);
+```
+
+The four dot colours (`#5790e6`, `#c2e029`, `#0b6e97`, `#ffffff`) are hardcoded inline styles on each `.dots-row span`.
+
+## `heroPlate` parallax registration
+
+Parallax is driven by a frame loop that runs every animation tick, independent of the scroll listener:
+
+```js
+function parallaxFrame() {
+  const vh = innerHeight;
+  for (const p of parallaxItems) {
+    const r = p.section.getBoundingClientRect();
+    let t = (vh - r.top) / (vh + r.height); // 0 at top of viewport, 1 at bottom
+    t = Math.min(1, Math.max(0, t));
+    const val = p.from + (p.to - p.from) * t;
+    p.el.style.transform = `translateY(${val}%)`;
+  }
+}
+addParallax(document.getElementById("heroPlate"), 0, 12, "y");
+```
+
+The plate translates from `0%` (section at the bottom of viewport) to `12%` (section fully above viewport), producing a slow upward drift that adds perceived depth.
+
+## CSS quick reference
+
+| Selector | Purpose |
+|---|---|
+| `.hero` | Full-viewport flex column, `overflow: hidden`, `border-radius: 2rem` |
+| `.hero-plate` | Oversized absolutely-positioned photo container |
+| `.hero-grad` | Gradient overlay on top of the photo |
+| `.hero-title` | `font-size: 10vw`, uppercase, `letter-spacing: -0.02em` |
+| `.tagline` | `font-size: 2.4rem`, stacked lines via `.clip` blocks |
+| `.slider` | Hidden on mobile (`display: none`), shown at `768px+` |
+| `.glass` | Frosted-glass panel: `backdrop-filter: blur(10px)`, semi-transparent border |
+| `.member` | Membership stat card inside `.hero-cluster` |

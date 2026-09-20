@@ -1,0 +1,172 @@
+---
+title: "Accessibility Features and Compliance in Baseline"
+sidebarTitle: "Accessibility"
+description: "Baseline implements ARIA dialog patterns, keyboard navigation, focus management, prefers-reduced-motion support, and minimum touch targets throughout."
+---
+
+Accessibility in Baseline is not an afterthought. Every interactive component — the mobile menu, the booking modal, the carousel controls, and the program list — was designed with keyboard users, screen-reader users, and users with motion sensitivities in mind from the start. This page documents each accessibility feature with direct references to the source code so you can understand and extend them as you customise the template.
+
+## Focus management
+
+Every interactive element in Baseline receives a consistent, visible focus ring through a single global CSS rule:
+
+```css
+:focus-visible {
+  outline: 2px solid var(--brand-light);
+  outline-offset: 2px;
+}
+```
+
+This rule uses `:focus-visible` rather than plain `:focus` deliberately. `:focus` applies its ring on every interaction — including mouse clicks — which creates visual noise for pointer users who don't need the indicator. `:focus-visible` is the browser-native way to show the ring **only when the user is navigating by keyboard or other non-pointer input**, so mouse users see clean UI while keyboard users always get a clear, high-contrast outline keyed to the brand's `--brand-light` blue.
+
+## Mobile menu as ARIA dialog
+
+The slide-in mobile menu is a full ARIA dialog, not a simple `display:none` toggle. Its markup declares the correct role and modal semantics:
+
+```html
+<div class="menu" id="menu"
+     role="dialog"
+     aria-modal="true"
+     aria-label="Site menu"
+     aria-hidden="true">
+```
+
+When the hamburger button is tapped, `openMenu()` does three things in sequence:
+
+1. Flips `aria-hidden` from `"true"` to `"false"` so screen readers can reach the dialog.
+2. Sets `mainContent.inert = true` on `<main id="mainContent">` — the `inert` attribute makes every element inside `<main>` invisible to both the keyboard tab order and screen readers while the menu is open, so a user cannot accidentally navigate behind the overlay.
+3. Calls `lock()` to pause Lenis smooth-scroll and add `html.locked` to prevent body scrolling.
+
+`closeMenu()` reverses all three steps: `aria-hidden` returns to `"true"`, `mainContent.inert` is set to `false`, and `unlock()` restores scrolling.
+
+```js
+function openMenu() {
+  menu.setAttribute("aria-hidden", "false");
+  mainContent.inert = true;
+  lock();
+  // ...spring animations
+}
+
+function closeMenu() {
+  menu.setAttribute("aria-hidden", "true");
+  mainContent.inert = false;
+  unlock();
+}
+```
+
+The `Escape` key also calls `closeMenu()`, matching the ARIA authoring-practices pattern for dialogs.
+
+## Booking modal focus trapping
+
+The "Book a Visit" contact modal follows the same ARIA dialog pattern as the mobile menu:
+
+```html
+<div class="modal" id="modal" aria-hidden="true">
+  <div class="modal-panel"
+       role="dialog"
+       aria-modal="true"
+       aria-label="Book a visit">
+```
+
+When `openModal()` fires, `aria-hidden` is toggled to `"false"` and focus is programmatically moved into the first form field after a short delay to allow the spring animation to begin:
+
+```js
+function openModal() {
+  modal.setAttribute("aria-hidden", "false");
+  // ...
+  setTimeout(() => document.getElementById("f-name").focus(), 120);
+}
+```
+
+This ensures that a keyboard or screen-reader user who activates "Book a Visit" lands directly inside the form, not stranded on the triggering button behind the overlay. `closeModal()` resets `aria-hidden` to `"true"` and clears the form, and `Escape` dismisses both the modal and the menu from anywhere on the page.
+
+## `prefers-reduced-motion` support
+
+All animation and stagger timing in Baseline is gated behind a single boolean constant derived from the user's OS-level motion preference:
+
+```js
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+```
+
+`RM` is checked at every animation callsite. When it is `true`:
+
+- All spring-reveal stagger delays collapse to `0` — elements appear immediately rather than cascading in.
+- CSS transition durations passed to word-clip and stacked-line reveals are set to `0ms`, making them instant.
+- The loader exit animation skips the slide-out (`loader.remove()` is called directly instead of transitioning).
+- The hero content (title and tagline word-clips) appears on the first frame.
+
+For example, the program list reveals each row with a staggered delay:
+
+```js
+setTimeout(() => sp.to({ opacity: 1, y: 0 }), RM ? 0 : i * 90);
+```
+
+When `RM` is `true` the timeout fires immediately (`0`ms); when it is `false` each row staggers by 90 ms. The same pattern repeats for the stats grid, testimonials, and all other scroll-triggered reveals.
+
+## Touch targets
+
+All interactive elements meet the WCAG 2.5.5 minimum recommended touch target size of **44 × 44 px**:
+
+- **Hamburger button** — `width: 2.5rem; height: 2.5rem` (40 px at the 16 px base; scales with the fluid root `font-size`, exceeding 44 px on most viewport sizes).
+- **Carousel arrow buttons (`.abtn`)** — `width: 3rem; height: 3rem` on mobile, `width: 3.5rem; height: 3.5rem` on larger viewports.
+- **Pill CTA buttons (`.pill`)** — `padding: 0.875rem 1.75rem` produces a hit area comfortably above 44 px tall.
+- **Modal / menu close buttons (`.iconbtn`)** — `width: 2.5rem; height: 2.5rem`.
+- **Slide dot buttons (`.cdots button`)** — given extra `padding: 0.375rem` around the visual dot so the tappable area is much larger than the 6 px dot itself.
+
+## Screen-reader utility class
+
+Icon-only buttons carry a visually-hidden label via the `.sr-only` class:
+
+```css
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+```
+
+This is the canonical "visually hidden" technique: the element exists in the DOM and is readable by assistive technology but occupies no visual space and does not affect layout. In Baseline it is used for the `<dt>` (description term) elements inside the stats grid, where the visual label is a `<span>` but the semantic label is wrapped in `<dt class="sr-only">` for proper `<dl>` structure:
+
+```html
+<dt class="sr-only">Certified coaches</dt>
+<dd><b>24</b><span>Certified coaches</span></dd>
+```
+
+Explicit `aria-label` attributes on icon-only buttons (carousel previous/next, hamburger, close) serve the same purpose where a DOM text node is not appropriate.
+
+## Semantic HTML
+
+Baseline uses the full set of HTML sectioning and figure elements throughout:
+
+| Element | Where used |
+|---|---|
+| `<header>` | Site navigation bar inside the hero section |
+| `<main id="mainContent">` | Wraps all page content; made `inert` during overlays |
+| `<nav>` | Desktop nav, footer sitemap columns, social and legal link groups — each with a unique `aria-label` |
+| `<footer>` | Site footer with CTA, sitemap, and copyright |
+| `<section>` | Hero, Trust, Programs, Facilities, Stats, Testimonials — each with a meaningful `id` anchor |
+| `<figure>` / `<figcaption>` | Coach photo with name and role; court photos with surface descriptions |
+| `<blockquote>` pattern | Testimonial cards use `<figure>` with a `<figcaption>` for member attribution |
+| `<address>` | Contact details (email, phone, location) in the footer |
+| `<dl>` / `<dt>` / `<dd>` | Stats grid — term/value pairs with `.sr-only` terms |
+
+Relying on native semantics means screen readers can announce regions, jump between landmarks, and read figures with their captions without any additional ARIA markup.
+
+## Known gaps
+
+<Warning>
+  **Review these items before launching to production:**
+
+  - **Image `alt` text is placeholder.** All `alt` attributes in `index.html` contain descriptive but generic copy (e.g. `"Player lunging for a shot on a hard court"`). Replace every `alt` value with text that accurately describes the specific image you use — especially the hero image, coach photos, and court cards.
+  - **No 320 px viewport testing has been done.** The README explicitly notes that the fluid type scale and layout have not been verified at a 320 px-wide viewport (the minimum required by WCAG 1.4.10 Reflow). Test at this width before launch and adjust `font-size` breakpoints or layout rules as needed.
+</Warning>
+
+<Tip>
+  After customising your copy, images, and coaching information, test the finished page with **VoiceOver** (macOS: <kbd>Cmd</kbd> + <kbd>F5</kbd> / iOS: triple-click the side button) or **NVDA** (Windows, free download) to verify that screen-reader announcements match your updated content. Pay particular attention to the modal and menu open/close announcements, the carousel "Previous / Next coach" labels, and the booking form field labels.
+</Tip>

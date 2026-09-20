@@ -1,0 +1,142 @@
+---
+title: "Updating Club Statistics in Baseline"
+sidebarTitle: "Stats Data"
+description: "The stats section displays four club metrics from a JavaScript array. Learn how to update the values and labels, or add a fifth stat."
+---
+
+The Stats section sits between Facilities and Testimonials and presents four headline metrics on a deep-blue background. All four figures come from a compact JavaScript array — changing a number or label is a single string edit.
+
+---
+
+## The `stats` array
+
+Find the following line in the `<script type="module">` section of `index.html`:
+
+```js
+const stats = [
+  ["24",  "Certified coaches"],
+  ["12",  "Championship courts"],
+  ["9K+", "Members training"],
+  ["15",  "Years on the baseline"]
+];
+```
+
+The array contains exactly **four entries**. Each entry is a two-element tuple: a **value** string followed by a **label** string.
+
+---
+
+## Array structure
+
+| Index | Field   | Type   | Description |
+|-------|---------|--------|-------------|
+| `[0]` | `value` | string | The large headline number displayed in `3.75 rem` / `4.5 rem` type. Can include any suffix — `K+`, `%`, `+`, `m`, etc. |
+| `[1]` | `label` | string | The smaller descriptive text beneath the value, rendered in muted white at `0.875 rem`. |
+
+Both fields are plain strings, so you are not limited to integers — use whatever suffix or notation communicates the metric best (e.g. `"500+"`, `"#1"`, `"~20K"`).
+
+---
+
+## How stats are rendered
+
+The array is iterated and each stat is appended to `<dl id="statGrid">`:
+
+```js
+const statGrid = document.getElementById("statGrid");
+
+stats.forEach(([v, l], i) => {
+  const d = document.createElement("div");
+  d.className = "stat";
+  d.innerHTML = `
+    <dt class="sr-only">${l}</dt>
+    <dd><b>${v}</b><span>${l}</span></dd>`;
+  statGrid.appendChild(d);
+
+  // Spring reveal — staggered per stat
+  const sp = mkSpring(d, { opacity: 0, y: 30 }, { opacity: 1, y: 0 }, [180, 24]);
+  const io = new IntersectionObserver(en => {
+    if (en[0].isIntersecting) {
+      setTimeout(() => sp.to({ opacity: 1, y: 0 }), RM ? 0 : i * 110);
+      io.disconnect();
+    }
+  }, { threshold: 0.2 });
+  io.observe(d);
+});
+```
+
+The `<dt>` element uses `.sr-only` (screen-reader only) so assistive technology reads the full label, while sighted users see the visually styled `<b>` + `<span>` pair inside `<dd>`.
+
+---
+
+## The spring reveal animation
+
+Each stat animates in from below when the section enters the viewport. The reveal is staggered by **110 ms per stat** (`i * 110`), so the four figures cascade left-to-right. If the visitor has enabled **prefers-reduced-motion**, the stagger is set to `0` and all four stats appear instantly.
+
+---
+
+## How to update a value
+
+Edit either string in the corresponding tuple. For example, to update the member count:
+
+```js
+// Before
+["9K+", "Members training"],
+
+// After
+["11K+", "Members training"],
+```
+
+Save and hard-refresh (Ctrl+Shift+R / Cmd+Shift+R) — the new figure appears immediately.
+
+---
+
+## Adding a fifth stat
+
+The stat grid CSS uses a two-column layout on mobile and a **four-column layout on desktop**:
+
+```css
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);   /* mobile */
+  column-gap: 2rem;
+  row-gap: 3rem;
+}
+
+@media (min-width: 1024px) {
+  .stat-grid {
+    grid-template-columns: repeat(4, 1fr);  /* desktop */
+  }
+}
+```
+
+A fifth stat will overflow onto a second row at the desktop breakpoint, leaving the grid asymmetric. To fix this, change both `repeat()` values to accommodate your new total:
+
+```css
+/* Example: 3-column mobile + 5-column desktop */
+.stat-grid {
+  grid-template-columns: repeat(2, 1fr);   /* keep 2-up on mobile */
+}
+
+@media (min-width: 1024px) {
+  .stat-grid {
+    grid-template-columns: repeat(5, 1fr);  /* ← change 4 to 5 */
+  }
+}
+```
+
+Then add the fifth entry to the array:
+
+```js
+const stats = [
+  ["24",  "Certified coaches"],
+  ["12",  "Championship courts"],
+  ["9K+", "Members training"],
+  ["15",  "Years on the baseline"],
+  ["3",   "Grand Slam alumni"]   // ← new
+];
+```
+
+---
+
+<Tip>
+Keep values **short** (6 characters or fewer) so they fit comfortably within the large `3.75 rem` (mobile) / `4.5 rem` (desktop) number display without wrapping. Values like `"500+"`, `"9K+"`, and `"100%"` all fit cleanly. A value such as `"12,500"` may wrap on narrower columns.
+</Tip>

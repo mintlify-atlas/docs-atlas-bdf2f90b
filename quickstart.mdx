@@ -1,47 +1,158 @@
 ---
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+title: "Get Started with Baseline in Under 5 Minutes"
+sidebarTitle: "Quickstart"
+description: "Clone Baseline, spin up a local HTTP server, and make your first content edits — no build tools required. Up and running in under five minutes."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
-
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
+By the end of this guide you will have Baseline running in your browser over a local HTTP server, and you will have made your first two real edits: swapping a training program and changing the brand colour. No package manager, no bundler, and no configuration files are involved.
 
 ## Prerequisites
 
-Before you begin, you must have:
+<Note>
+  You only need three things to run Baseline locally:
 
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
+  - **Python 3, Node.js, or PHP** — any one of these is enough to spin up a static HTTP server.
+  - **A modern browser** — Chrome, Firefox, Safari, or Edge all work.
+  - **A plain text editor** — VS Code, Sublime Text, Notepad++, or anything that can save UTF-8 HTML files.
+</Note>
 
-## Get started
+## Steps
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
+  <Step title="Clone or download the repository">
+    Clone the repo from GitHub into a local directory:
 
     ```bash
-    npm install your-package
+    git clone https://github.com/Vishen-dart-coder/Baseline.git
+    cd Baseline
     ```
+
+    If you prefer not to use Git, download the ZIP from the GitHub repository page and unzip it. The only file you need is `index.html`.
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
 
-    ```bash
-    your-cli init
-    ```
+  <Step title="Serve the page over HTTP">
+    Baseline uses a native ES module import map to load Lenis from jsDelivr. Browsers block ES module imports that originate from `file://` URLs, so you **must** serve the file over HTTP — even for local development. Choose whichever tool you already have installed:
+
+    <CodeGroup>
+      ```bash Python
+      python3 -m http.server 8000
+      ```
+
+      ```bash Node.js (npx)
+      npx serve .
+      ```
+
+      ```bash PHP
+      php -S localhost:8000
+      ```
+    </CodeGroup>
+
+    Then open [http://localhost:8000/index.html](http://localhost:8000/index.html) in your browser. All three servers default to serving from the current directory, so make sure your terminal is inside the `Baseline` folder before running the command.
   </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
 
-    ```bash
-    your-cli start
+  <Step title="Explore what you've got">
+    When the page loads you will see:
+
+    1. **A branded loader screen** — a dark `--brand-deep` overlay fades in the Baseline wordmark and an animating progress bar, then slides up off the screen after roughly 1.4 seconds.
+    2. **The Hero section** — a full-viewport parallax court photograph, the animated headline "Own The Court" (word-clip reveal), the tagline "Show Up, Level Up" (stacked line reveal), a glass court-series gear slider, and a member count card.
+    3. **Scroll-triggered reveals on every subsequent section** — as you scroll down, elements animate in using the spring engine. Watch the ghost-text word reveals in the Trust section and the staggered program rows as they enter the viewport.
+
+    Resize the window and notice how all text scales fluidly — that is the `vw`-based fluid type scale at work, with no layout jumps at breakpoints.
+  </Step>
+
+  <Step title="Make your first content edit — swap a training program">
+    All four training programs are defined in a `programs` array inside the inline `<script type="module">` near the bottom of `index.html`. Open the file in your text editor, search for `const programs`, and you will find:
+
+    ```javascript
+    const programs = [
+      ["01", "Junior Development",  "Fundamentals, footwork, and match play for ages 6–14.",       "#junior"],
+      ["02", "Performance Squad",   "High-volume training for competitive and ranked players.",     "#performance"],
+      ["03", "Adult Clinics",       "Small-group sessions to sharpen technique and fitness.",       "#adult"],
+      ["04", "Private Coaching",    "One-to-one sessions tailored to your goals and schedule.",     "#private"]
+    ];
     ```
+
+    Each entry is a four-element array: `[number, name, description, anchor-href]`. To rename a program or update its description, edit the string values in place:
+
+    ```javascript
+    ["03", "Mixed Doubles Clinic", "Partner drills and match-play tactics for all levels.", "#doubles"],
+    ```
+
+    Save the file and refresh the browser — no build step, no restart required.
+  </Step>
+
+  <Step title="Change the brand colour">
+    All colours are defined as CSS custom properties on `:root` at the very top of the `<style>` block. Find the `:root` rule and update `--brand` to any hex, RGB, or HSL value:
+
+    ```css
+    :root {
+      --background:   #ffffff;
+      --foreground:   #0a0a0a;
+      --brand:        #2563c9;   /* ← change this */
+      --brand-deep:   #0f2f63;
+      --brand-light:  #5790e6;
+      --accent-teal:  #0b6e97;
+      --surface:      #f4f4f4;
+      --surface-card: #ffffff;
+      --ink:          #0a0a0a;
+      --ink-soft:     #717784;
+      --ghost:        #d7dae1;
+      --hairline:     #e6e8ec;
+      --on-brand:     #ffffff;
+    }
+    ```
+
+    For example, to switch to a forest-green brand:
+
+    ```css
+    --brand:       #1a7a4a;
+    --brand-deep:  #0d3d25;
+    --brand-light: #4db87a;
+    ```
+
+    Save and refresh. The navigation focus ring, the booking modal submit button, the stat section testimonial quote marks, and the eyebrow dot accents all update immediately from these three variables alone.
   </Step>
 </Steps>
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+## Why `file://` URLs Don't Work
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
-</Tip>
+<Warning>
+  **Do not open `index.html` directly from your file system** (i.e. by double-clicking it or dragging it into a browser tab).
+
+  Baseline uses a `<script type="importmap">` to resolve the `lenis` bare module specifier to a jsDelivr CDN URL. Browsers enforce strict security policies that **block ES module imports originating from `file://` URLs**, so the Lenis import will fail silently, smooth scrolling will not initialise, and the page loader will never resolve — leaving the screen stuck on the dark overlay.
+
+  Always use a local HTTP server (`python3 -m http.server`, `npx serve`, `php -S`, or equivalent) so the file is served over `http://` or `https://`.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Architecture"
+    icon="sitemap"
+    href="/architecture/structure"
+  >
+    Understand how the single-file is structured — from the CSS custom-property layer and fluid type scale, through the spring engine, to the section-by-section HTML layout.
+  </Card>
+  <Card
+    title="Customization"
+    icon="paintbrush"
+    href="/customization/content"
+  >
+    A full guide to swapping out placeholder copy, images, coach data, stats, and testimonials with your club's real content.
+  </Card>
+  <Card
+    title="CSS Variables"
+    icon="palette"
+    href="/customization/css-variables"
+  >
+    Deep-dive into every token defined on `:root` — colours, surface shades, border radii, and how they cascade through the components.
+  </Card>
+  <Card
+    title="Deployment"
+    icon="server"
+    href="/customization/serving"
+  >
+    Options for hosting the finished page — from GitHub Pages and Netlify drop to a self-hosted nginx or Caddy static server — and why any HTTP server works.
+  </Card>
+</CardGroup>

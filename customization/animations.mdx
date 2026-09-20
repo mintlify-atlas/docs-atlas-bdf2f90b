@@ -1,0 +1,309 @@
+---
+title: "Scroll-Triggered Reveals and Text Animations"
+sidebarTitle: "Animations"
+description: "How Baseline triggers section reveals, word-clip text transitions, and staggered card entrances using IntersectionObserver and the spring engine."
+---
+
+Every reveal in Baseline — sliding headings, fading stat cards, staggered program rows, and the hero title build — is handled without a single scroll-animation library. The system layers three primitives on top of the spring engine: CSS clip-based word reveals driven by class toggles, `IntersectionObserver` instances that fire springs exactly once per page load, and a parallax loop that runs inside the shared `tick` frame. Together they produce a full-page choreography from roughly 150 lines of vanilla JavaScript.
+
+## `prefers-reduced-motion`
+
+Before any animation fires, Baseline reads the system `prefers-reduced-motion` media query into a module-level constant:
+
+```javascript
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+```
+
+`RM` is then used as a gate throughout every timed delay. Wherever a stagger or entrance delay would normally be applied, the expression `RM ? 0 : delay` collapses it to zero — the element still transitions to its final state, just instantly rather than over time. This means reduced-motion users always see the correct final layout while the code stays a single path rather than a full alternate branch.
+
+## Word-Clip Reveals
+
+### CSS foundation
+
+Word-clip reveals rely on two CSS classes defined in the `<style>` block:
+
+```css
+.clip {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  padding-bottom: 0.14em;
+}
+.clip > span {
+  display: inline-block;
+  transform: translateY(115%);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+.clip.go > span {
+  transform: translateY(0);
+  opacity: 1;
+}
+```
+
+Each word is wrapped in a `.clip` container that hides overflow. The inner `<span>` starts translated 115 % below the baseline. Adding the `.go` class to the container brings the span back to origin — the CSS `transition` on the inner span (set by `playClips`) controls the timing.
+
+### `wordClips`
+
+`wordClips` splits a string into words and builds the `.clip > span` DOM structure for each one:
+
+```javascript
+function wordClips(el, text, opts = {}) {
+  el.textContent = "";
+  const words = text.split(" ");
+  const nodes = words.map((w, i) => {
+    const clip = document.createElement("span");
+    clip.className = "clip";
+    if (opts.padBottom) clip.style.paddingBottom = opts.padBottom;
+    const inner = document.createElement("span");
+    inner.textContent = w;
+    clip.appendChild(inner);
+    el.appendChild(clip);
+    if (i < words.length - 1) el.appendChild(document.createTextNode(" "));
+    return { clip, inner };
+  });
+  return nodes;
+}
+```
+
+It returns an array of `{clip, inner}` node pairs that are later passed to `playClips`.
+
+### `playClips`
+
+`playClips` animates an array of clip nodes by resetting their transitions, forcing a reflow, then adding the `.go` class with a staggered `transition` declaration written directly onto each `inner` span:
+
+```javascript
+function playClips(nodes, { stagger = 120, base = 0, dur = 950, ease = EASE.easeOutExpo } = {}) {
+  nodes.forEach((n, i) => {
+    n.clip.classList.remove("go");
+    n.inner.style.transition = "none";
+    void n.inner.offsetWidth; // force reflow
+    n.inner.style.transition =
+      `transform ${RM ? 0 : dur}ms ${ease} ${RM ? 0 : base + i * stagger}ms, ` +
+      `opacity ${RM ? 0 : dur}ms ${ease} ${RM ? 0 : base + i * stagger}ms`;
+    requestAnimationFrame(() => n.clip.classList.add("go"));
+  });
+}
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `stagger` | `120` | Milliseconds between each word's delay |
+| `base` | `0` | Fixed offset added before the stagger calculation |
+| `dur` | `950` | Transition duration in milliseconds |
+| `ease` | `easeOutExpo` | CSS timing function string |
+
+## Stacked Line Reveals
+
+For multi-line headings Baseline uses `stackedLines` and `playStacked`. These work identically to `wordClips`/`playClips` but operate on whole lines rather than individual words.
+
+### `stackedLines`
+
+```javascript
+function stackedLines(el, lines, opts = {}) {
+  el.textContent = "";
+  const nodes = lines.map(l => {
+    const clip = document.createElement("span");
+    clip.className = "clip";
+    const inner = document.createElement("span");
+    inner.textContent = l;
+    clip.appendChild(inner);
+    el.appendChild(clip);
+    return { clip, inner };
+  });
+  return nodes;
+}
+```
+
+### `playStacked`
+
+`playStacked` looks up the element in the `stackedEls` array (which was pre-built from all `[data-lines]` elements at page load) and delegates to `playClips`:
+
+```javascript
+function playStacked(el) {
+  const s = stackedEls.find(s => s.el === el);
+  if (s) playClips(s.nodes, { stagger: s.stagger, dur: s.dur });
+}
+```
+
+### Registering a `[data-lines]` heading
+
+Any element in the HTML can become a stacked reveal by adding a `data-lines` attribute. Lines are separated by `|`:
+
+```html
+<h2 data-lines="Built for|every level"></h2>
+<h2 data-lines="Tour Our|World-Class|Courts" data-stagger="120"></h2>
+```
+
+At startup, Baseline scans for all `[data-lines]` elements and builds the clip nodes. Each heading then gets its own `IntersectionObserver` that calls `playClips` once on first view (except headings inside `#modal`, which are triggered by `playStacked` when the modal opens).
+
+## IntersectionObserver Pattern
+
+Any element can receive a spring entrance reveal by adding three `data-*` attributes:
+
+```html
+<div
+  data-inview='{"opacity":0,"y":24}'
+  data-to='{"opacity":1,"y":0}'
+  data-cfg="200,26"
+  data-delay="120"
+>
+```
+
+| Attribute | Type | Description |
+|---|---|---|
+| `data-inview` | JSON object | Initial (from) spring state |
+| `data-to` | JSON object | Target (to) spring state |
+| `data-cfg` | `"tension,friction"` | Spring config as a comma-separated pair |
+| `data-delay` | Number (ms) | Optional delay before the spring fires |
+
+At startup a single `querySelectorAll` pass creates a spring for each element, then attaches an observer:
+
+```javascript
+document.querySelectorAll("[data-inview]").forEach(el => {
+  const from  = JSON.parse(el.dataset.inview);
+  const to    = JSON.parse(el.dataset.to);
+  const cfg   = el.dataset.cfg.split(",").map(Number);
+  const delay = +(el.dataset.delay || 0);
+  const sp    = mkSpring(el, from, to, cfg);
+  const io    = new IntersectionObserver(en => {
+    if (en[0].isIntersecting) {
+      setTimeout(() => sp.to(to), RM ? 0 : delay);
+      io.disconnect();
+    }
+  }, { threshold: 0.15 });
+  io.observe(el);
+});
+```
+
+<Note>
+All `IntersectionObserver` instances in Baseline call `.disconnect()` immediately after the first trigger. Reveals fire exactly once per page load — scrolling back past a section will not replay the animation.
+</Note>
+
+## Per-Section Stagger Examples
+
+Stagger values are hand-tuned per section to match the visual weight and density of the content.
+
+### Programs rows — 90 ms stagger
+
+```javascript
+programs.forEach(([num, name, desc, href], i) => {
+  // …build row element…
+  const sp = mkSpring(inner, {opacity:0,y:26}, {opacity:1,y:0}, [190,26]);
+  const io = new IntersectionObserver(en => {
+    if (en[0].isIntersecting) {
+      setTimeout(() => sp.to({opacity:1,y:0}), RM ? 0 : i * 90);
+      io.disconnect();
+    }
+  }, { threshold: 0.2 });
+  io.observe(a);
+});
+```
+
+### Stats cards — 110 ms stagger
+
+```javascript
+stats.forEach(([v, l], i) => {
+  // …build stat element…
+  const sp = mkSpring(d, {opacity:0,y:30}, {opacity:1,y:0}, [180,24]);
+  const io = new IntersectionObserver(en => {
+    if (en[0].isIntersecting) {
+      setTimeout(() => sp.to({opacity:1,y:0}), RM ? 0 : i * 110);
+      io.disconnect();
+    }
+  }, { threshold: 0.2 });
+  io.observe(d);
+});
+```
+
+### Testimonial cards — 120 ms stagger
+
+```javascript
+testis.forEach(([q, n, r], i) => {
+  // …build card element…
+  const sp = mkSpring(wrap, {opacity:0,y:40}, {opacity:1,y:0}, [180,26]);
+  const io = new IntersectionObserver(en => {
+    if (en[0].isIntersecting) {
+      setTimeout(() => sp.to({opacity:1,y:0}), RM ? 0 : i * 120);
+      io.disconnect();
+    }
+  }, { threshold: 0.2 });
+  io.observe(wrap);
+});
+```
+
+## Parallax
+
+Baseline includes a lightweight parallax system that runs inside the shared `tick` loop. Elements are registered with `addParallax` and updated every frame by `parallaxFrame`.
+
+### `addParallax`
+
+```javascript
+const parallaxItems = [];
+
+function addParallax(el, from, to, unit, section) {
+  parallaxItems.push({
+    el, from, to, unit,
+    section: section || el.closest("section")
+  });
+}
+```
+
+### `parallaxFrame`
+
+```javascript
+function parallaxFrame() {
+  const vh = innerHeight;
+  for (const p of parallaxItems) {
+    const r = p.section.getBoundingClientRect();
+    let t = (vh - r.top) / (vh + r.height);
+    t = Math.min(1, Math.max(0, t));
+    const val = p.from + (p.to - p.from) * t;
+    p.el.style.transform = `translate${p.unit === "x" ? "X" : "Y"}(${val}%)`;
+  }
+}
+```
+
+`t` is a normalised scroll progress from `0` (section just entering the viewport bottom) to `1` (section leaving the viewport top), clamped so values never overshoot.
+
+### Hero plate registration
+
+```javascript
+addParallax(document.getElementById("heroPlate"), 0, 12, "y");
+```
+
+The hero background image starts at `translateY(0%)` and moves to `translateY(12%)` as the hero section scrolls out of view, creating the depth illusion.
+
+## Hover Spring Helpers
+
+The `hover` function wires spring-based hover states to any element pair in a single call:
+
+```javascript
+function hover(trigger, el, from, to, cfg, apply) {
+  const sp = mkSpring(el, from, from, cfg, apply);
+  trigger.addEventListener("pointerenter", () => { if (canHover()) sp.to(to); });
+  trigger.addEventListener("pointerleave", () => sp.to(from));
+  trigger.addEventListener("focus",        () => sp.to(to));
+  trigger.addEventListener("blur",         () => sp.to(from));
+}
+```
+
+`canHover()` returns `true` only when `innerWidth > 768`, preventing hover springs from firing on touch devices where `pointerenter` can fire spuriously.
+
+**Example — testimonial card lift:**
+
+```javascript
+hover(card, card, {y:0}, {y:-8}, [300,22]);
+```
+
+When the user hovers over a testimonial card, it springs upward by 8 px with a tension of 300 and friction of 22 — snappy enough to feel responsive, damped enough to not overshoot.
+
+**Example — court image zoom:**
+
+```javascript
+document.querySelectorAll("[data-hoverscale]").forEach(fig => {
+  hover(fig, fig.querySelector("img"), {scale:1}, {scale:1.03}, [300,22]);
+});
+```
+
+Any element marked `data-hoverscale` will have its inner `<img>` spring-zoomed to 103 % on hover.

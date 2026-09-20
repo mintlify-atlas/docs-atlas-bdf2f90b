@@ -1,72 +1,87 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mintlify Starter Kit",
+  "name": "Baseline",
+  "theme": "willow",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#2563c9",
+    "dark": "#0f2f63"
   },
-  "favicon": "/favicon.svg",
-  "navigation": {
-    "pages": [
-      {
-        "group": "Getting Started",
-        "pages": [
-          "index",
-          "quickstart"
-        ]
-      }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
+  "favicon": "https://icons.duckduckgo.com/ip3/baseline-dun-two.vercel.app.ico",
   "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
     "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
+      "type": "github",
+      "href": "https://github.com/Vishen-dart-coder/Baseline"
     }
-  },
-  "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity",
-      "mcp",
-      "cursor",
-      "vscode"
-    ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "github": "https://github.com/Vishen-dart-coder/Baseline"
     }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Overview",
+        "groups": [
+          {
+            "group": "Introduction",
+            "pages": ["introduction", "quickstart"]
+          },
+          {
+            "group": "Architecture",
+            "pages": ["architecture/structure", "architecture/design-system"]
+          },
+          {
+            "group": "Page Sections",
+            "pages": [
+              "sections/hero",
+              "sections/trust",
+              "sections/programs",
+              "sections/facilities",
+              "sections/stats",
+              "sections/testimonials",
+              "sections/footer"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Customization",
+        "groups": [
+          {
+            "group": "Content & Data",
+            "pages": [
+              "customization/content",
+              "customization/images",
+              "customization/programs-data",
+              "customization/stats-data"
+            ]
+          },
+          {
+            "group": "Styling",
+            "pages": [
+              "customization/css-variables",
+              "customization/typography",
+              "customization/layout"
+            ]
+          },
+          {
+            "group": "Interactions",
+            "pages": [
+              "customization/spring-engine",
+              "customization/animations",
+              "customization/smooth-scroll"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "customization/serving",
+              "customization/accessibility"
+            ]
+          }
+        ]
+      }
+    ]
   }
 }

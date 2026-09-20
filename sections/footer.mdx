@@ -1,0 +1,343 @@
+---
+title: "Footer and Booking CTA"
+sidebarTitle: "Footer"
+description: "The Footer section combines a full-width booking call-to-action, a multi-column sitemap, social links, contact details, and the location map card."
+---
+
+The Footer (`id="contact"`, `<footer class="foot">`) sits at the very bottom of the page and doubles as the primary conversion surface. It opens with a large booking call-to-action row, continues into a four-column sitemap with contact details, and closes with a bottom bar containing the copyright notice, social links, and legal links. The booking button in the footer (and in the mobile menu overlay) triggers the same contact modal that appears at the top of the page.
+
+## HTML structure overview
+
+```html
+<footer class="foot" id="contact">
+
+  <!-- 1. CTA row -->
+  <div class="foot-cta">…</div>
+
+  <!-- 2. Four-column sitemap -->
+  <div class="foot-cols">…</div>
+
+  <!-- 3. Bottom bar (copyright + social + legal) -->
+  <div class="foot-bottom">…</div>
+
+</footer>
+```
+
+## 1. Booking CTA area
+
+The CTA row sits above a dividing hairline and contains the headline on the left and the "Book a Visit" pill button on the right. On mobile the two items stack vertically; on `640px+` they sit side by side aligned to the bottom edge.
+
+```html
+<div class="foot-cta">
+  <div>
+    <span class="eyebrow light"><i></i>Get started</span>
+    <!-- data-lines splits "Ready to|play?" into two stacked clip lines -->
+    <h2 data-lines="Ready to|play?"></h2>
+  </div>
+
+  <button
+    class="pill light"
+    data-open-modal
+    data-inview='{"opacity":0,"y":20}'
+    data-to='{"opacity":1,"y":0}'
+    data-cfg="200,24"
+    data-delay="150"
+  >
+    Book a Visit
+    <svg viewBox="0 0 24 24" …><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+  </button>
+</div>
+```
+
+The `data-open-modal` attribute is picked up by the global selector that wires every matching element to `openModal()`:
+
+```js
+document.querySelectorAll("[data-open-modal]").forEach(b =>
+  b.addEventListener("click", openModal)
+);
+```
+
+The CTA button also uses the standard inview spring system (`data-inview` / `data-to` / `data-cfg`), so it rises into view with a slight delay after the heading.
+
+## 2. `#menuBook` button — chaining closeMenu and openModal
+
+The "Book a Visit" button inside the mobile menu overlay (`id="menuBook"`) uses a dedicated event listener rather than `data-open-modal`, so it can **first close the menu, then open the modal** with a 220 ms gap between the two:
+
+```js
+document.getElementById("menuBook").addEventListener("click", () => {
+  closeMenu();
+  setTimeout(openModal, 220);  // wait for menu exit animation before opening modal
+});
+```
+
+This prevents both overlays from being visible simultaneously and keeps the spring exit/entry animations from colliding.
+
+## 3. Sitemap columns
+
+The `.foot-cols` grid has four columns on `768px+` (1.4fr + three 1fr columns) and stacks to a single column on mobile:
+
+```html
+<div class="foot-cols">
+
+  <!-- Column 1: brand, blurb, contact -->
+  <div class="foot-brand">
+    <div class="brand">…Baseline logo…</div>
+    <p class="foot-blurb">
+      A members' tennis club and academy where focused coaching meets
+      championship courts.
+    </p>
+    <address>
+      <a href="mailto:play@baseline.club">play@baseline.club</a>
+      <a href="tel:+12125550148">+1 (212) 555-0148</a>
+      <span class="muted">120 Court Lane, New York</span>
+    </address>
+  </div>
+
+  <!-- Column 2: Programs -->
+  <nav><h3>Programs</h3><ul>
+    <li><a href="#junior">Junior Development</a></li>
+    <li><a href="#performance">Performance Squad</a></li>
+    <li><a href="#adult">Adult Clinics</a></li>
+    <li><a href="#private">Private Coaching</a></li>
+  </ul></nav>
+
+  <!-- Column 3: Club -->
+  <nav><h3>Club</h3><ul>
+    <li><a href="#membership">Membership</a></li>
+    <li><a href="#facilities">Facilities</a></li>
+    <li><a href="#club">Events</a></li>
+    <li><a href="#shop">Pro Shop</a></li>
+  </ul></nav>
+
+  <!-- Column 4: Company -->
+  <nav><h3>Company</h3><ul>
+    <li><a href="#about">About</a></li>
+    <li><a href="#programs">Coaches</a></li>
+    <li><a href="#careers">Careers</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul></nav>
+
+</div>
+```
+
+<Note>
+The third sitemap column is labelled **"Company"** in the HTML source, not "Legal" — legal links (Privacy, Terms) appear in the bottom bar's `aria-label="Legal"` nav element.
+</Note>
+
+## 4. Social links
+
+Social links appear in two places: the footer bottom bar and the mobile menu overlay. Both use plain anchor tags pointing to `#instagram`, `#x`, `#youtube`, and `#linkedin` as placeholder hrefs:
+
+```html
+<!-- Footer bottom bar -->
+<nav aria-label="Social">
+  <a href="#instagram">Instagram</a>
+  <a href="#x">X</a>
+  <a href="#youtube">YouTube</a>
+  <a href="#linkedin">LinkedIn</a>
+</nav>
+
+<!-- Mobile menu -->
+<nav aria-label="Social">
+  <a href="#instagram">Instagram</a>
+  <a href="#x">X</a>
+  <a href="#youtube">YouTube</a>
+  <a href="#linkedin">LinkedIn</a>
+</nav>
+```
+
+Replace the `href` values with real profile URLs to activate the links.
+
+## 5. Contact block
+
+The `<address>` element inside `.foot-brand` holds the three contact items. `<address>` has `font-style: normal` overridden so it renders like body text:
+
+```html
+<address>
+  <a href="mailto:play@baseline.club">play@baseline.club</a>
+  <a href="tel:+12125550148">+1 (212) 555-0148</a>
+  <span class="muted">120 Court Lane, New York</span>
+</address>
+```
+
+```css
+address {
+  font-style: normal;
+  margin-top: 1.5rem;
+  color: rgba(255,255,255,.8);
+  font-size: .875rem;
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+address .muted { color: rgba(255,255,255,.55); }
+```
+
+## 6. The contact modal (`#cform` and `#csuccess`)
+
+The modal is a fixed overlay rendered outside `<main>` and controlled by `openModal()` / `closeModal()`. It contains both the form and a success state; only one is visible at a time.
+
+```html
+<div class="modal" id="modal" aria-hidden="true">
+  <div class="modal-bd" data-close-modal></div>
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Book a visit">
+
+    <!-- Header with animated headline -->
+    <div class="modal-head">
+      <div>
+        <span class="eyebrow dark"><i></i>Book a visit</span>
+        <h2 data-lines="Come see|the courts" data-stagger="90" data-dur="800"></h2>
+      </div>
+      <button class="iconbtn" aria-label="Close" data-close-modal>…</button>
+    </div>
+
+    <!-- Booking form -->
+    <form class="cf" id="cform" novalidate>
+      <div>
+        <label for="f-name">Full name</label>
+        <input id="f-name" name="name" type="text" placeholder="Alex Rivera">
+      </div>
+      <div>
+        <label for="f-email">Email</label>
+        <input id="f-email" name="email" type="email" placeholder="you@email.com">
+      </div>
+      <div>
+        <label for="f-msg">What would you like to play?</label>
+        <textarea id="f-msg" name="msg" rows="3"
+                  placeholder="I'd love to try a private lesson on the clay courts…"></textarea>
+      </div>
+      <button type="submit" id="csubmit">Request a visit</button>
+    </form>
+
+    <!-- Success state (hidden until form submitted) -->
+    <div class="success" id="csuccess" hidden>
+      <div class="tick">
+        <svg viewBox="0 0 24 24" …><path d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <h3>Request received</h3>
+      <p id="cmsg"></p>
+      <button class="pill solid" data-close-modal>Done</button>
+    </div>
+
+  </div>
+</div>
+```
+
+### Modal open / close springs
+
+Two springs manage the modal entrance and exit:
+
+```js
+// Backdrop: fades in/out
+const mBdSp = mkSpring(modalBd, { opacity: 0 }, { opacity: 1 }, [240, 30],
+  (v, el) => el.style.opacity = v.opacity);
+
+// Panel: fades + rises + scales
+const mPanelSp = mkSpring(
+  modalPanel,
+  { opacity: 0, y: 28, scale: 0.96 },
+  { opacity: 1, y: 0,  scale: 1    },
+  [240, 26]
+);
+```
+
+```js
+function openModal() {
+  modal.classList.add("open");
+  modal.setAttribute("aria-hidden", "false");
+  mBdSp.to({ opacity: 1 });
+  mPanelSp.to({ opacity: 1, y: 0, scale: 1 });
+  playStacked(modal.querySelector("[data-lines]")); // animate the headline
+  lock();                                           // pause Lenis scroll
+  setTimeout(() => document.getElementById("f-name").focus(), 120);
+}
+
+function closeModal() {
+  mBdSp.to({ opacity: 0 });
+  mPanelSp.to({ opacity: 0, y: 28, scale: 0.96 });
+  modal.classList.remove("open");
+  modal.setAttribute("aria-hidden", "true");
+  unlock();
+  // reset form after exit animation completes
+  setTimeout(() => {
+    cform.reset();
+    cform.hidden = false;
+    csuccess.hidden = true;
+    csubmit.disabled = false;
+    csubmit.textContent = "Request a visit";
+  }, 350);
+}
+```
+
+The `Escape` key closes both the modal and the menu:
+
+```js
+addEventListener("keydown", e => {
+  if (e.key === "Escape") { closeModal(); closeMenu(); }
+});
+```
+
+### Form submission and success state
+
+The form's `submit` handler is entirely client-side. It disables the submit button, waits 700 ms (simulating a network round-trip), hides `#cform`, shows `#csuccess`, and personalises the confirmation message with the submitter's first name:
+
+```js
+cform.addEventListener("submit", e => {
+  e.preventDefault();
+  csubmit.disabled = true;
+  csubmit.textContent = "Sending…";
+
+  const first = (cform.name.value || "").trim().split(" ")[0] || "there";
+
+  setTimeout(() => {
+    cform.hidden = true;
+    csuccess.hidden = false;
+    document.getElementById("cmsg").textContent =
+      `Thanks, ${first} — our team will be in touch to lock in your visit.`;
+  }, 700);
+});
+```
+
+<Warning>
+The form submission is **simulated** — no data is sent to a server. To add real form handling, replace the `setTimeout` block with a `fetch()` call to your backend or a form service endpoint, and only show `#csuccess` on a successful response.
+</Warning>
+
+## Footer CSS reference
+
+```css
+.foot {
+  background: var(--brand-deep);
+  color: #fff;
+  border-radius: 2rem;
+  margin-top: .75rem;
+  padding: 3.5rem 1.5rem;      /* 4rem 2.5rem at 640px+ */
+}
+
+.foot-cta {
+  border-bottom: 1px solid rgba(255,255,255,.15);
+  padding-bottom: 3.5rem;
+}
+.foot-cta h2 {
+  font-size: 3.75rem;
+  font-weight: 500;
+  line-height: .92;
+  letter-spacing: -.02em;
+}
+
+.foot-cols {
+  display: grid;
+  grid-template-columns: 1fr;        /* stacked on mobile */
+  gap: 2.5rem;
+  padding: 3.5rem 0;
+}
+@media (min-width: 768px) {
+  .foot-cols { grid-template-columns: 1.4fr 1fr 1fr 1fr; }
+}
+
+.foot-bottom {
+  border-top: 1px solid rgba(255,255,255,.15);
+  padding-top: 2rem;
+  font-size: .875rem;
+  color: rgba(255,255,255,.6);
+}
+```

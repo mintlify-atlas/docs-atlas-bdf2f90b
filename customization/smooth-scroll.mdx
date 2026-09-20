@@ -1,0 +1,126 @@
+---
+title: "Lenis Smooth Scroll: Setup and Configuration"
+sidebarTitle: "Smooth Scroll"
+description: "Baseline integrates Lenis smooth scroll via a CDN ES module import map — no npm install. Learn how the import map works, how Lenis is initialised, and how to tune scroll behaviour."
+---
+
+Baseline uses [Lenis](https://github.com/darkroomengineering/lenis) for smooth, momentum-based scrolling. Rather than bundling Lenis through a package manager, Baseline loads it as a native ES module straight from a CDN, keeping the project completely build-tool-free. The entire integration — import map, initialisation, RAF loop, lock helpers, and anchor interception — lives inside the single `<script type="module">` block in `index.html`.
+
+<Warning>
+The import map requires the page to be served over HTTP (or HTTPS). Opening `index.html` directly in a browser via the `file://` protocol will cause a browser error that blocks Lenis from loading entirely. Use a local dev server such as `npx serve .`, VS Code Live Server, or any static file host.
+</Warning>
+
+## Import Map
+
+The `<script type="importmap">` block, placed in `<head>` before the module script, maps the bare specifier `"lenis"` to the ESM build on jsDelivr:
+
+```html
+<script type="importmap">
+{ "imports": { "lenis": "https://cdn.jsdelivr.net/npm/lenis@1.1.18/+esm" } }
+</script>
+```
+
+This lets the module script use a clean bare import:
+
+```javascript
+import Lenis from "lenis";
+```
+
+Without the import map, `import Lenis from "lenis"` would throw a resolution error in the browser because browsers don't resolve bare specifiers without a map or bundler.
+
+### Updating the Lenis Version
+
+The version number appears once in the import map URL. To upgrade, change `1.1.18` to the desired version:
+
+```html
+{ "imports": { "lenis": "https://cdn.jsdelivr.net/npm/lenis@1.2.0/+esm" } }
+```
+
+Check the [Lenis releases page](https://github.com/darkroomengineering/lenis/releases) for available versions, and review the changelog for breaking changes before upgrading.
+
+## Lenis Initialisation
+
+Lenis is instantiated once at the top of the module script:
+
+```javascript
+window.scrollTo(0, 0); // snap to top before Lenis takes over
+const lenis = new Lenis({ smoothWheel: true });
+```
+
+`window.scrollTo(0, 0)` runs before Lenis initialises to prevent a scroll position flash when the page is refreshed part-way down. The `smoothWheel: true` option enables interpolated mouse-wheel scrolling — without it, trackpad and mouse wheel events would remain native.
+
+Refer to the [Lenis documentation](https://github.com/darkroomengineering/lenis#instance-settings) for the full option reference (e.g. `lerp`, `duration`, `easing`, `orientation`).
+
+## The RAF Loop
+
+Lenis does not self-tick; it must be driven by `requestAnimationFrame`. Baseline's `raf` function feeds Lenis a timestamp on every frame and schedules the next call:
+
+```javascript
+function raf(t) {
+  lenis.raf(t);
+  requestAnimationFrame(raf);
+}
+requestAnimationFrame(raf);
+```
+
+This loop runs independently of the spring `tick` loop — both start from separate `requestAnimationFrame` calls and run in parallel. Lenis updates the scroll position, then the spring engine reads the resulting layout in the same frame.
+
+## `lock()` / `unlock()`
+
+Two helper functions freeze and restore scrolling. They use a reference counter (`locks`) so that nested callers — for example, the loader and a simultaneously open modal — don't prematurely re-enable scroll when only one of them closes:
+
+```javascript
+let locks = 0;
+
+function lock() {
+  locks++;
+  lenis.stop();
+  document.documentElement.classList.add("locked");
+}
+
+function unlock() {
+  locks = Math.max(0, locks - 1);
+  if (!locks) {
+    lenis.start();
+    document.documentElement.classList.remove("locked");
+  }
+}
+```
+
+`lenis.stop()` pauses smooth-scroll interpolation, while the `"locked"` class on `<html>` sets `overflow: hidden` to prevent any native scroll fallback during that period. `lenis.start()` re-enables interpolation when the last lock is released.
+
+`lock()` is called in three places:
+
+- **Loader start** — immediately at module evaluation, so the page cannot be scrolled while the intro animation plays.
+- **Menu open** — via `openMenu()`.
+- **Modal open** — via `openModal()`.
+
+Each corresponding close function calls `unlock()`.
+
+## Smooth Anchor Scroll
+
+Baseline intercepts all same-page anchor clicks and hands them to Lenis so they animate smoothly rather than jumping:
+
+```javascript
+document.addEventListener("click", e => {
+  const a = e.target.closest('a[href^="#"]');
+  if (!a) return;
+  const id = a.getAttribute("href");
+  const t  = id.length > 1 && document.querySelector(id);
+  if (!t) return;
+  e.preventDefault();
+  lenis.scrollTo(t, { offset: 0 });
+});
+```
+
+A single delegated listener on `document` catches every `<a href="#...">` click, resolves the target element, prevents the default jump, and calls `lenis.scrollTo()`. The `offset: 0` option means the section lands flush at the top of the viewport.
+
+<Note>
+If you add a sticky header later, use the `offset` option in `lenis.scrollTo` to compensate for the header height so the target section isn't obscured. For example, with an 80 px header:
+
+```javascript
+lenis.scrollTo(t, { offset: -80 });
+```
+
+You can also make this dynamic: `lenis.scrollTo(t, { offset: -header.offsetHeight })`.
+</Note>

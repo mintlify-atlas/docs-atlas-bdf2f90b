@@ -1,0 +1,153 @@
+---
+title: "Page Layout and Responsive Spacing in Baseline"
+sidebarTitle: "Layout"
+description: "How Baseline handles page-level layout — the main container padding, section card radii, section stacking order, and the breakpoints used for responsive reflow."
+---
+
+Baseline's layout model is deliberately minimal: a single `<main>` element wraps every section in a vertical stack, and sections are styled as rounded cards that sit inside the thin inset created by `<main>`'s padding. There are no CSS grid columns at the page level, no sidebar, and no wrapper-within-wrapper nesting. This makes the section order easy to change, the visual rhythm easy to understand, and the responsive behaviour straightforward to follow.
+
+## `<main>` container
+
+`<main>` is the outermost layout container for all page content. Two rules govern its geometry:
+
+```css
+main {
+  width: 100%;
+  overflow-x: clip;
+  padding: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  main {
+    padding: 0.75rem;
+  }
+}
+```
+
+The `padding` creates the narrow gap between the browser edge and the rounded section cards — `0.5rem` on mobile and `0.75rem` on wider screens. This inset is intentional: it lets the card `border-radius` values breathe against the page background and gives the layout its "stacked cards" feel.
+
+`overflow-x: clip` prevents any content (such as the parallax hero image or animated elements) from causing a horizontal scrollbar.
+
+## Section border radius and overlap
+
+Sections that function as visual "cards" use the large card radius from the token set. The hero and stats sections both use `var(--radius-card-lg)` (`2rem`):
+
+```css
+.hero {
+  border-radius: var(--radius-card-lg);
+  /* ... */
+}
+
+.stats {
+  border-radius: var(--radius-card-lg);
+  margin-top: 0.75rem;
+  /* ... */
+}
+```
+
+The facilities section uses the same large radius, but adds a negative `margin-top` to visually tuck under the section above it, creating a deliberate overlapping-card effect:
+
+```css
+.facilities {
+  background: var(--background);
+  border-radius: var(--radius-card-lg);
+  margin-top: -2.5rem;   /* pulls the section up, overlapping .programs */
+  padding: 4rem 1.5rem 5rem;
+  position: relative;
+}
+```
+
+The footer uses the same pattern with a small positive margin:
+
+```css
+.foot {
+  border-radius: var(--radius-card-lg);
+  margin-top: 0.75rem;
+}
+```
+
+## Responsive breakpoints
+
+Baseline uses three breakpoints across the layout. Each targets a specific set of reflow changes:
+
+### 640 px — mobile → base
+
+This is the primary mobile breakpoint. Above 640 px:
+
+- `<main>` padding increases from `0.5rem` to `0.75rem`
+- Section internal padding increases — e.g. `.trust` goes from `4rem 1.5rem` to `5rem 2.5rem`, `.hero-bottom` gains wider side padding (`2.5rem`) and switches from a column to a row layout
+- The "Book a Visit" text link in the header becomes visible (`.booktxt{display:none}` → `display:inline-block`)
+- The hero bottom cluster, footer CTA row, footer bottom bar, and menu bottom bar all switch from `flex-direction: column` to `flex-direction: row`
+
+### 768 px — two-column grids and the slider
+
+At 768 px:
+
+- The facilities grid switches from a single column to two columns: `grid-template-columns: 1fr 1fr`
+- The testimonials grid switches to three columns: `grid-template-columns: repeat(3, 1fr)`
+- The footer columns grid switches to a four-column layout: `grid-template-columns: 1.4fr 1fr 1fr 1fr`
+- The hero slider (`.slider`) becomes visible: `display: none` → `display: flex`
+
+### 1024 px — desktop navigation
+
+At 1024 px:
+
+- The desktop header navigation (`.hdr-nav`) becomes visible: `display: none` → `display: flex`
+- The brand logo in the header switches from left-aligned to center-justified: `justify-content: center`
+- The stats grid switches from a 2-column layout to 4 columns: `grid-template-columns: repeat(4, 1fr)`
+
+## Section z-index stacking
+
+The hero section uses `isolation: isolate` to create a new stacking context, preventing its background layers from bleeding into the document stack, and `overflow: hidden` to clip the parallax plate image:
+
+```css
+.hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+```
+
+The Trust section places its content cluster above the decorative ghost heading using explicit z-index layers:
+
+```css
+.trust {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+/* Top cluster (percentage circle + badge card) sits at z-index 20 */
+.trust-top {
+  position: relative;
+  z-index: 20;
+}
+
+/* Ghost heading is z-index 0, behind the top cluster */
+.ghost-h {
+  position: relative;
+  z-index: 0;
+}
+
+/* Coach card sits between the ghost heading and the top cluster */
+.coach-wrap {
+  position: relative;
+  z-index: 10;
+}
+```
+
+## Reordering sections
+
+Because all sections are direct children of `<main>`, they can be reordered simply by moving `<section>` (or `<footer>`) blocks up or down in the HTML source. The CSS does not depend on any specific section order.
+
+One constraint to keep in mind: the smooth-scroll "back to top" anchor in the header points to `#top`, which is set as the `id` on the first section:
+
+```html
+<section class="hero" id="top">
+```
+
+If you move the hero section or replace it with a different opening section, make sure `id="top"` moves with it, or update the `href="#top"` anchor in the brand logo link inside `<header>`.
+
+<Note>
+  `overflow-x: clip` is used on `<main>` rather than `overflow: hidden` deliberately. `overflow: hidden` would create a new block formatting context that breaks `position: sticky` for any child elements (such as a sticky navigation bar or a sticky section header). `overflow-x: clip` clips horizontal overflow without triggering that side-effect, preserving sticky positioning behaviour inside sections.
+</Note>

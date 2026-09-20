@@ -1,0 +1,103 @@
+{
+  "projectType": "frontend",
+  "projectName": "Baseline",
+  "projectDescription": "A single-file landing page for Baseline, a members' tennis club and academy, built with zero build tooling — pure HTML, inline CSS, and vanilla JavaScript.",
+  "theme": "willow",
+  "primaryColor": "#2563c9",
+  "lightColor": null,
+  "darkColor": "#0f2f63",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Overview",
+        "groups": [
+          {
+            "group": "Introduction",
+            "pages": ["introduction", "quickstart"]
+          },
+          {
+            "group": "Architecture",
+            "pages": ["architecture/structure", "architecture/design-system"]
+          },
+          {
+            "group": "Page Sections",
+            "pages": [
+              "sections/hero",
+              "sections/trust",
+              "sections/programs",
+              "sections/facilities",
+              "sections/stats",
+              "sections/testimonials",
+              "sections/footer"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Customization",
+        "groups": [
+          {
+            "group": "Content & Data",
+            "pages": [
+              "customization/content",
+              "customization/images",
+              "customization/programs-data",
+              "customization/stats-data"
+            ]
+          },
+          {
+            "group": "Styling",
+            "pages": [
+              "customization/css-variables",
+              "customization/typography",
+              "customization/layout"
+            ]
+          },
+          {
+            "group": "Interactions",
+            "pages": [
+              "customization/spring-engine",
+              "customization/animations",
+              "customization/smooth-scroll"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "customization/serving",
+              "customization/accessibility"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Zero build tooling — single HTML file with inline CSS and vanilla JS",
+    "Hand-rolled spring animation engine (mkSpring) for smooth UI transitions",
+    "Lenis smooth scroll via CDN import map — no npm install required",
+    "Fluid type scale using viewport-relative root font-size breakpoints",
+    "Scroll-triggered section reveals with IntersectionObserver",
+    "Accessible mobile menu overlay (role=dialog, aria-modal, inert background)",
+    "Book a Visit modal with form and spring-animated open/close",
+    "Coach carousel and collection slider with dot navigation",
+    "Parallax hero background plate",
+    "prefers-reduced-motion support throughout all animations"
+  ],
+  "publicApiSurface": [
+    "mkSpring(el, from, to, cfg, apply) — create a spring-driven animator",
+    "Spring.to(target) — animate to a target state",
+    "wordClips(el, text, opts) — wrap words in clip spans for reveal animations",
+    "playClips(nodes, opts) — trigger staggered word-clip reveal",
+    "stackedLines(el, lines, opts) — build stacked line nodes for heading reveals",
+    "playStacked(el) — play all stacked-line heading reveals on an element",
+    "hover(trigger, el, from, to, cfg, apply) — attach spring hover interaction",
+    "addParallax(el, from, to, unit, section) — register a parallax scroll item",
+    "openMenu() / closeMenu() — control mobile menu overlay",
+    "openModal() / closeModal() — control Book a Visit modal",
+    "setSlide(i) — navigate collection slider to index i",
+    "setTrust(i) — navigate coach carousel to index i",
+    "lock() / unlock() — pause/resume Lenis scroll",
+    "CSS custom properties: --brand, --brand-deep, --brand-light, --accent-teal, --surface, --ink, --ink-soft, --ghost, --hairline, --radius-card, --radius-pill"
+  ]
+}

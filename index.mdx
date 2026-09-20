@@ -1,20 +1,65 @@
 ---
-title: "Introduction"
-description: "Welcome to your project"
+title: "Baseline: Tennis Club & Academy Landing Page"
+sidebarTitle: "Home"
+description: "Baseline is a zero-build, single-file landing page for a members' tennis club and academy — pure HTML, inline CSS, and vanilla JS."
 ---
 
-Write a short description of your product here. What it does, who it's for, and what they can accomplish with it.
+Baseline is a production-quality marketing landing page for a tennis club and academy. The entire site lives in one HTML file with no build step, no bundler, and no framework — just HTML, inline CSS, and vanilla JavaScript. Drop it on any static host and you're live.
 
-<Tip>
-  Ready to make this your own? Start by editing this page. Update your `docs.json` file to customize your site. Then fill out the [Quickstart](/quickstart) page.
-</Tip>
+<CardGroup cols={2}>
+  <Card title="Introduction" icon="book-open" href="/introduction">
+    Learn what Baseline is, how it works, and what's inside the single HTML file.
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Serve the page locally and make your first content edit in under five minutes.
+  </Card>
+  <Card title="Architecture" icon="sitemap" href="/architecture/structure">
+    Understand the file structure, section layout, and the custom spring animation engine.
+  </Card>
+  <Card title="Customization" icon="paintbrush" href="/customization/content">
+    Swap copy, images, programs, and stats to match your club's brand and content.
+  </Card>
+</CardGroup>
 
-<Card title="Quickstart" icon="rocket" href="/quickstart">
-  This card links to the quickstart page in your project.
-</Card>
-<Card title="Components" icon="puzzle-piece" href="https://mintlify.com/docs/components">
-  Add cards, callouts, steps, tabs, and more to design and structure your pages.
-</Card>
-<Card title="Settings" icon="gear" href="https://mintlify.com/docs/organize/settings">
-  Set your site name, branding, and navigation in the `docs.json` file.
-</Card>
+## What's inside
+
+Baseline ships every feature a tennis club landing page needs, with no external dependencies beyond a CDN-loaded smooth-scroll library.
+
+<CardGroup cols={3}>
+  <Card title="Spring Animations" icon="wand-magic-sparkles" href="/customization/spring-engine">
+    Hand-rolled physics spring engine — no GSAP, no Framer Motion.
+  </Card>
+  <Card title="Smooth Scroll" icon="scroll" href="/customization/smooth-scroll">
+    Lenis smooth scroll loaded via import map from jsDelivr.
+  </Card>
+  <Card title="Fluid Typography" icon="text-size" href="/customization/typography">
+    Viewport-relative font scale that reflows continuously across all screen sizes.
+  </Card>
+  <Card title="Accessible Modals" icon="universal-access" href="/customization/accessibility">
+    Mobile menu and booking modal follow ARIA dialog pattern with inert background.
+  </Card>
+  <Card title="CSS Variables" icon="palette" href="/customization/css-variables">
+    Full design token system — swap brand colors in one place, everything updates.
+  </Card>
+  <Card title="Page Sections" icon="layer-group" href="/sections/hero">
+    Seven content sections covering hero, coaches, programs, courts, stats, testimonials, and footer.
+  </Card>
+</CardGroup>
+
+## Get started in three steps
+
+<Steps>
+  <Step title="Clone or download the repo">
+    Download `index.html` from [GitHub](https://github.com/Vishen-dart-coder/Baseline) or clone the repository.
+  </Step>
+  <Step title="Serve over HTTP">
+    Run `python3 -m http.server 8000` (or any static server) and open `http://localhost:8000/index.html` in your browser. A plain `file://` URL will block the ES module import for Lenis.
+  </Step>
+  <Step title="Edit content">
+    Open `index.html` and update the JavaScript data arrays (`programs`, `stats`, `testis`, `trustSlides`, `collections`) and the CSS custom properties under `:root` to match your club's brand.
+  </Step>
+</Steps>
+
+<Note>
+  Baseline is intentionally a single-file prototype. All markup, styles, and scripts are co-located in `index.html` — there is no build step to run and no dependencies to install.
+</Note>

@@ -1,0 +1,120 @@
+---
+title: "Serving and Deploying Baseline"
+sidebarTitle: "Serving"
+description: "Baseline is a single HTML file. Deploy it to Vercel, Netlify, GitHub Pages, or any static host — no build step needed. Learn your options for local and production serving."
+---
+
+Baseline ships as a single `index.html` file containing all markup, inline CSS, and vanilla JavaScript. Because there is no build step, no framework, and no package manager, deploying it is as simple as putting one file on any static host. Vercel, Netlify, GitHub Pages, a bare nginx server, or even a USB stick running a local HTTP server will all work equally well.
+
+## Why you must serve over HTTP
+
+Baseline loads [Lenis](https://github.com/darkroomengineering/lenis) smooth-scroll directly from jsDelivr using a native ES module import map:
+
+```html
+<script type="importmap">
+  { "imports": { "lenis": "https://cdn.jsdelivr.net/npm/lenis@1.1.18/+esm" } }
+</script>
+```
+
+Browsers enforce strict security rules around ES module imports: **they block `file://` origins from resolving import maps entirely.** If you double-click `index.html` to open it from your file system the import map is silently ignored, Lenis never loads, and the page is broken before you've changed a single line.
+
+<Warning>
+  **Always serve over HTTP — never open `index.html` directly from the file system.** Opening via `file://` blocks the ES module import map used by Lenis, causing the smooth-scroll engine to fail on load. Use any of the local servers below instead.
+</Warning>
+
+## Local development
+
+Pick whichever one-liner matches what you already have installed. All three start a static HTTP server rooted at the current directory, then navigate to `http://localhost:8000/index.html` in your browser.
+
+<CodeGroup>
+
+```bash python3
+python3 -m http.server 8000
+```
+
+```bash node
+npx serve .
+```
+
+```bash php
+php -S localhost:8000
+```
+
+</CodeGroup>
+
+After starting the server, open **`http://localhost:8000/index.html`** in your browser. Any edits you make to `index.html` are visible immediately on the next page reload — no watch process, no hot-reload daemon, no compile step.
+
+## Deploying to Vercel
+
+Vercel auto-detects static sites and requires zero configuration for a single HTML file.
+
+<Steps>
+  <Step title="Push the repo to GitHub">
+    Commit `index.html` (and any supporting assets) and push to a GitHub repository. Vercel can also import from GitLab or Bitbucket if you prefer.
+  </Step>
+  <Step title="Import the project on vercel.com">
+    Sign in at [vercel.com](https://vercel.com), click **Add New → Project**, and select the repository. Vercel will automatically detect that there is no build framework present.
+  </Step>
+  <Step title="Set the output directory to the repo root">
+    Leave the **Build Command** field empty. Set the **Output Directory** to `.` (a single dot representing the repository root). Vercel will serve whatever files are at that location — including `index.html` — directly.
+  </Step>
+  <Step title="Deploy">
+    Click **Deploy**. Vercel assigns a `*.vercel.app` preview URL within seconds. Your `index.html` is live at the root path of that URL (`https://your-project.vercel.app/`).
+  </Step>
+</Steps>
+
+## Deploying to Netlify
+
+Netlify offers two equally simple paths: a drag-and-drop upload for a quick preview, or a GitHub-connected deploy for ongoing updates.
+
+<Steps>
+  <Step title="Drag-and-drop (instant preview)">
+    Visit [netlify.com/drop](https://app.netlify.com/drop) and drag the folder that contains `index.html` into the drop zone. Netlify packages the folder and publishes it immediately under a random `*.netlify.app` URL — no account required.
+  </Step>
+  <Step title="Connect a GitHub repo (recommended for ongoing work)">
+    In the Netlify dashboard go to **Add new site → Import an existing project** and authorise GitHub. Set the **Publish directory** to `.` and leave the **Build command** field empty. Netlify will re-deploy automatically every time you push to the configured branch.
+  </Step>
+</Steps>
+
+## Deploying to GitHub Pages
+
+GitHub Pages serves static content straight from a branch in your repository.
+
+<Steps>
+  <Step title="Open repository Settings → Pages">
+    Navigate to your GitHub repository, click the **Settings** tab, then select **Pages** from the left sidebar.
+  </Step>
+  <Step title="Configure the source">
+    Under **Build and deployment**, set **Source** to **Deploy from a branch**. Choose your `main` branch and set the folder to `/ (root)`.
+  </Step>
+  <Step title="Save and wait for the build">
+    Click **Save**. GitHub Actions runs a short deploy job and publishes your site at:
+
+    ```
+    https://<username>.github.io/<repo-name>/
+    ```
+
+    The first deploy takes a minute or two; subsequent pushes to `main` redeploy automatically.
+  </Step>
+</Steps>
+
+## Custom domains
+
+All three platforms support custom domains with no changes needed inside `index.html` itself — domain wiring is handled entirely through each platform's dashboard:
+
+- **Vercel** — Project → Settings → Domains → Add
+- **Netlify** — Site configuration → Domain management → Add a domain
+- **GitHub Pages** — Repository Settings → Pages → Custom domain
+
+Add a CNAME or A-record at your DNS provider as instructed, and the platform provisions an HTTPS certificate automatically.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Accessibility" href="/customization/accessibility" icon="universal-access">
+    ARIA dialog patterns, keyboard navigation, focus management, and reduced-motion support built into Baseline.
+  </Card>
+  <Card title="CSS Variables" href="/customization/css-variables" icon="palette">
+    Customise colours, radii, and spacing across the whole page by editing a handful of CSS custom properties.
+  </Card>
+</CardGroup>

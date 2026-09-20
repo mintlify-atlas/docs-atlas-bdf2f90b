@@ -1,0 +1,160 @@
+---
+title: "Spring Animation Engine: mkSpring and the Spring Class"
+sidebarTitle: "Spring Engine"
+description: "Baseline ships a hand-rolled physics spring engine. Learn how the Spring class and mkSpring factory work, and how to tune tension and friction for your own animations."
+---
+
+Baseline has no dependency on GSAP, Framer Motion, or any third-party animation library. Every animated transition — overlays, reveals, hover effects, stat counters — is driven by a ~50-line bespoke spring engine embedded directly in `index.html`. The engine models each animatable value as a damped harmonic oscillator, giving you physically natural motion that can't be replicated with CSS cubic-bezier easing alone.
+
+## The `Spring` Class
+
+The `Spring` class is the core primitive. Each instance tracks one or more numeric properties (e.g. `opacity`, `y`, `scale`) and advances them toward a target on every animation frame using a spring force formula.
+
+```javascript
+class Spring {
+  constructor(el, from, to, cfg, apply){
+    this.el = el; this.cfg = cfg; this.apply = apply;
+    this.keys = Object.keys(to);
+    this.x = {}; this.v = {}; this.t = {};
+    for (const k of this.keys){
+      this.x[k] = from[k] ?? to[k];
+      this.v[k] = 0;
+      this.t[k] = from[k] ?? to[k];
+    }
+    this.render(); springs.add(this);
+  }
+  to(target){ for (const k in target) this.t[k] = target[k]; this.active = true; }
+  step(dt){
+    let moving = false;
+    for (const k of this.keys){
+      const d = this.x[k] - this.t[k];
+      if (Math.abs(d) < 0.0005 && Math.abs(this.v[k]) < 0.0005){
+        this.x[k] = this.t[k]; this.v[k] = 0; continue;
+      }
+      moving = true;
+      this.v[k] += (-this.cfg.tension * d - this.cfg.friction * this.v[k]) * dt;
+      this.x[k] += this.v[k] * dt;
+    }
+    if (moving) this.render();
+    return moving;
+  }
+  render(){ this.apply(this.x, this.el); }
+}
+```
+
+**How it works, step by step:**
+
+- **`constructor`** — Initialises position (`x`), velocity (`v`), and target (`t`) maps for every key in the `to` object. Calls `render()` immediately so the element starts in its `from` state without a flash, then registers the instance in the global `springs` `Set`.
+- **`to(target)`** — Updates one or more target values mid-flight. The spring will smoothly chase the new target from wherever it currently is.
+- **`step(dt)`** — Called every frame with the elapsed time in seconds. Applies the spring force `F = -tension * displacement - friction * velocity`, advancing `x` toward `t`. Returns `false` once all properties have settled (displacement and velocity both below `0.0005`).
+- **`render()`** — Calls the `apply` function with the current state, writing values to the DOM.
+
+## The `mkSpring` Factory
+
+In practice you will never instantiate `Spring` directly. The `mkSpring` factory wraps the constructor and normalises the config array into the `{tension, friction}` object the class expects:
+
+```javascript
+function mkSpring(el, from, to, cfg, apply){
+  return new Spring(el, from, to, {tension:cfg[0], friction:cfg[1]}, apply || transformApply);
+}
+```
+
+| Argument | Type | Description |
+|---|---|---|
+| `el` | `Element` | DOM element to animate |
+| `from` | `object` | Initial state, e.g. `{opacity:0, y:24}` |
+| `to` | `object` | Target state, e.g. `{opacity:1, y:0}` |
+| `cfg` | `[number, number]` | `[tension, friction]` tuple |
+| `apply` | `function \| undefined` | Custom apply callback; falls back to `transformApply` |
+
+## How `transformApply` Works
+
+When no custom `apply` function is provided, `mkSpring` uses `transformApply` as the default:
+
+```javascript
+const transformApply = (v, el) => {
+  const parts = [];
+  if ("x" in v) parts.push(`translateX(${v.x}${v.xUnit || "px"})`);
+  if ("y" in v) parts.push(`translateY(${v.y}px)`);
+  if ("scale" in v) parts.push(`scale(${v.scale})`);
+  if ("rotate" in v) parts.push(`rotate(${v.rotate}deg)`);
+  if (parts.length) el.style.transform = parts.join(" ");
+  if ("opacity" in v) el.style.opacity = v.opacity;
+};
+```
+
+`transformApply` builds a `transform` string from whichever of `x`, `y`, `scale`, and `rotate` are present in the spring's value map, then writes `opacity` separately. Properties absent from the spring state are simply ignored, so a spring tracking only `{opacity, y}` will never touch `scale` or `rotate` on the element.
+
+## The `tick` Loop
+
+All springs share a single `requestAnimationFrame` loop. The global `springs` `Set` holds every live instance, and `tick` steps them all forward on each frame:
+
+```javascript
+const springs = new Set();
+let last = performance.now();
+
+function tick(now){
+  const dt = Math.min(0.032, (now - last) / 1000); last = now;
+  for (const s of springs) s.step(dt);
+  parallaxFrame();
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+```
+
+`dt` is capped at `0.032` seconds (≈ one frame at 30 fps) to prevent large jumps after tab switches or long frames. `parallaxFrame()` also runs here so the hero parallax stays in sync with the spring renders.
+
+## Usage Examples
+
+### Menu panel
+
+```javascript
+const menuPanelSp = mkSpring(menuPanel, {opacity:0,y:-24}, {opacity:1,y:0}, [220,28]);
+```
+
+The panel starts above the viewport (`y:-24`) and fades in as it slides down.
+
+### Modal panel
+
+```javascript
+const mPanelSp = mkSpring(modalPanel, {opacity:0,y:28,scale:0.96}, {opacity:1,y:0,scale:1}, [240,26]);
+```
+
+The modal rises from below while simultaneously scaling up from 96 %, producing the characteristic "surface lifting" feel.
+
+### Stat card entrance
+
+```javascript
+const sp = mkSpring(d, {opacity:0,y:30}, {opacity:1,y:0}, [180,24]);
+```
+
+Each stat card starts 30 px below its resting position and fades in, triggered by an `IntersectionObserver` with a staggered delay.
+
+## Tuning Parameters
+
+| Parameter | Effect | Typical Range |
+|---|---|---|
+| `tension` | Spring stiffness. Higher values snap to the target faster and produce snappier, more energetic motion. | 180 – 260 |
+| `friction` | Damping coefficient. Higher values absorb energy quickly, resulting in less overshoot and bounce. Lower values feel springy and elastic. | 22 – 30 |
+
+As a rule of thumb: increase `tension` if the animation feels sluggish; increase `friction` if it overshoots or wobbles too much.
+
+## Custom `apply` Functions
+
+Pass a fifth argument to `mkSpring` when you need to animate something other than `transform`/`opacity`. For example, the coach photo in the trust carousel only needs `opacity`:
+
+```javascript
+const coachSp = mkSpring(
+  coachImg,
+  {opacity:0},
+  {opacity:1},
+  [260,26],
+  (v, el) => { el.style.opacity = v.opacity; }
+);
+```
+
+The same pattern works for any CSS property — `background`, `width`, `border-radius` — as long as the value interpolates linearly and you write the DOM update yourself.
+
+<Tip>
+To disable all spring animations for a quick prototype, you can replace the `apply` function with a no-op, or snap any spring directly to its target by calling `sp.to(targetState)` and then immediately setting `sp.x = {...targetState}`. A cleaner approach is to check `prefers-reduced-motion`, which Baseline already does via the `RM` constant — all stagger delays become `0` when `RM` is `true`, so reduced-motion users still get instant state changes without any code forking in your animation logic.
+</Tip>

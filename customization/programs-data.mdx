@@ -1,0 +1,121 @@
+---
+title: "Configuring Training Programs in Baseline"
+sidebarTitle: "Programs Data"
+description: "Edit the programs JavaScript array to add, remove, or reorder training programs. Each entry sets the name, description, and link URL shown in the Programs section."
+---
+
+The Programs section lists every training offering your club provides. All program data lives in a single JavaScript array near the bottom of `index.html`. No HTML markup needs to change — the rows are generated automatically from the array at page load — so managing programs is as simple as editing a few strings.
+
+---
+
+## The `programs` array
+
+Locate the following block in the `<script type="module">` section of `index.html`:
+
+```js
+const programs = [
+  ["01", "Junior Development", "Fundamentals, footwork, and match play for ages 6–14.",       "#junior"],
+  ["02", "Performance Squad",  "High-volume training for competitive and ranked players.",     "#performance"],
+  ["03", "Adult Clinics",      "Small-group sessions to sharpen technique and fitness.",       "#adult"],
+  ["04", "Private Coaching",   "One-to-one sessions tailored to your goals and schedule.",    "#private"]
+];
+```
+
+Each element in the outer array is itself a four-element array (a **tuple**) representing one program row.
+
+---
+
+## Field reference
+
+| Index | Name in docs | Type   | Description |
+|-------|--------------|--------|-------------|
+| `[0]` | `num`        | string | Two-digit row counter displayed in the left gutter (`.prog-num`). This is purely decorative copy — it does not need to be numerically sequential, but matching the display order is conventional. |
+| `[1]` | `name`       | string | Program heading displayed in large type (`.prog-name`). Keep it short — one to three words work best at the large font size. |
+| `[2]` | `desc`       | string | One-line description displayed below the name in smaller, muted text (`.prog-desc`). |
+| `[3]` | `href`       | string | The destination when a visitor clicks the row. Use an in-page anchor (e.g. `"#junior"`) that matches a section `id` elsewhere on the page, or a full external URL (e.g. `"https://yourclub.com/junior-program"`). |
+
+---
+
+## How programs are rendered
+
+The array is iterated with `forEach`, and for each entry a `<a class="prog-row">` element is created and appended to `<div id="progList">`:
+
+```js
+const progList = document.getElementById("progList");
+
+programs.forEach(([num, name, desc, href], i) => {
+  const a = document.createElement("a");
+  a.className = "prog-row";
+  a.href = href;
+  a.innerHTML = `
+    <div class="prog-inner">
+      <span class="prog-num">${num}</span>
+      <span>
+        <span class="prog-name" style="display:block">${name}</span>
+        <span class="prog-desc" style="display:block">${desc}</span>
+      </span>
+      <span class="prog-arrow">
+        <svg viewBox="0 0 24 24" …><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </span>
+    </div>`;
+  progList.appendChild(a);
+  // spring reveal and hover wiring follows …
+});
+```
+
+Each row also receives an **IntersectionObserver spring reveal** (staggered by `i * 90 ms`) and an **arrow hover animation** — both wired automatically inside the same loop, so new programs inherit these effects for free.
+
+---
+
+## How to add a new program
+
+1. Open `index.html` in your editor and find the `programs` array.
+2. Append a new tuple to the end of the array (or insert it at any position — see [Reordering](#reordering) below).
+3. Give it the next sequential number, a name, a description, and a destination `href`.
+
+```js
+const programs = [
+  ["01", "Junior Development", "Fundamentals, footwork, and match play for ages 6–14.",       "#junior"],
+  ["02", "Performance Squad",  "High-volume training for competitive and ranked players.",     "#performance"],
+  ["03", "Adult Clinics",      "Small-group sessions to sharpen technique and fitness.",       "#adult"],
+  ["04", "Private Coaching",   "One-to-one sessions tailored to your goals and schedule.",    "#private"],
+  ["05", "Cardio Tennis",      "High-energy group fitness set on court for all levels.",      "#cardio"]  // ← new
+];
+```
+
+Save and reload — the new row will appear at the bottom of the list, complete with the reveal animation and hover effect.
+
+---
+
+## How to remove a program
+
+Delete the entire tuple (the inner array) for the program you want to remove. Make sure to also remove or adjust the trailing comma on the preceding line if it becomes the new last element.
+
+```js
+// Before — four programs
+const programs = [
+  ["01", "Junior Development", "…", "#junior"],
+  ["02", "Performance Squad",  "…", "#performance"],
+  ["03", "Adult Clinics",      "…", "#adult"],
+  ["04", "Private Coaching",   "…", "#private"]
+];
+
+// After — Adult Clinics removed
+const programs = [
+  ["01", "Junior Development", "…", "#junior"],
+  ["02", "Performance Squad",  "…", "#performance"],
+  ["04", "Private Coaching",   "…", "#private"]
+];
+```
+
+---
+
+## Reordering
+
+The array index directly controls the **visual order** of rows on the page — the first object in the array becomes the first row, the last becomes the last. To reorder programs, cut and paste the tuples into your preferred sequence. Update the `num` field (index `[0]`) in each tuple to keep the counter consistent if you want it to stay sequential.
+
+---
+
+<Note>
+The **arrow icon** on the right of each row (`.prog-arrow`) is purely decorative SVG rendered inline by the JavaScript template literal. You do not need to write any additional JavaScript to add a new program — the loop handles every row identically regardless of array length.
+</Note>

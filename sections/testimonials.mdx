@@ -1,0 +1,210 @@
+---
+title: "Testimonials Section: Member Quote Cards"
+sidebarTitle: "Testimonials"
+description: "The Testimonials section renders member quote cards from a JavaScript array, with staggered spring reveals as each card enters the viewport."
+---
+
+The Testimonials section (`id="testimonials"`) surfaces three member quotes as individual cards arranged in a single-column stack on mobile and a three-column grid on tablets and above. Every card is built from a JavaScript array, springs upward as it enters the viewport, and lifts slightly when hovered, giving the grid a tactile feel.
+
+## HTML structure
+
+Like the Programs and Stats sections, the Testimonials section provides only a container — the cards are injected entirely at runtime:
+
+```html
+<section class="testi" id="testimonials">
+  <span class="eyebrow dark"><i></i>What players say</span>
+  <h2 class="h-stack" data-lines="Loved by|the locker room"></h2>
+  <div class="testi-grid" id="testiGrid"></div>
+</section>
+```
+
+The section heading uses the same `data-lines` split mechanism as the other sections: `"Loved by|the locker room"` is divided into two stacked `.clip > span` pairs and revealed by an `IntersectionObserver` when the element crosses the viewport.
+
+## `testis` data array
+
+Each entry is a three-element tuple: `[quote, name, role]`.
+
+```js
+const testis = [
+  [
+    "I added a level to my serve in one season. The coaching is detailed and it actually sticks.",
+    "Priya Anand",
+    "Performance Squad"
+  ],
+  [
+    "Best courts in the city and a team that treats every member like a competitor.",
+    "Lukas Brenner",
+    "Adult Clinics"
+  ],
+  [
+    "My daughter went from shy beginner to club champion. Worth every minute.",
+    "Dana Okafor",
+    "Parent, Junior Development"
+  ]
+];
+```
+
+<Tip>
+Keep quotes concise — ideally one to two sentences. The card layout uses `justify-content: space-between` so the quote block and the author footer stay separated, but very long quotes will push the footer down and make cards unequal in height.
+</Tip>
+
+## DOM construction: the `<figure>` card
+
+Each testimonial is wrapped in a `<div>` (the spring target) that contains a `<figure class="tcard">`. The figure is split into a quote block at the top and a `<figcaption class="tfoot">` pinned to the bottom:
+
+```js
+const testiGrid = document.getElementById("testiGrid");
+
+testis.forEach(([q, n, r], i) => {
+  const wrap = document.createElement("div");
+  const card = document.createElement("figure");
+  card.className = "tcard";
+
+  card.innerHTML = `
+    <div>
+      <span class="tquote">&ldquo;</span>
+      <p>${q}</p>
+    </div>
+    <figcaption class="tfoot">
+      <b>${n}</b>
+      <span>${r}</span>
+    </figcaption>`;
+
+  wrap.appendChild(card);
+  testiGrid.appendChild(wrap);
+
+  // spring reveal + hover (see below)
+});
+```
+
+The rendered HTML for a single card looks like:
+
+```html
+<div>   <!-- spring target / grid cell -->
+  <figure class="tcard">
+    <div>
+      <span class="tquote">"</span>
+      <p>I added a level to my serve in one season.
+         The coaching is detailed and it actually sticks.</p>
+    </div>
+    <figcaption class="tfoot">
+      <b>Priya Anand</b>
+      <span>Performance Squad</span>
+    </figcaption>
+  </figure>
+</div>
+```
+
+## Staggered spring reveal
+
+The outer `<div>` (not the `<figure>`) is the spring element so the card's background and border-radius are always visible in their final position — only the content translates in:
+
+```js
+const sp = mkSpring(wrap, { opacity: 0, y: 40 }, { opacity: 1, y: 0 }, [180, 26]);
+
+const io = new IntersectionObserver(en => {
+  if (en[0].isIntersecting) {
+    setTimeout(() => sp.to({ opacity: 1, y: 0 }), i * 120); // 120 ms between cards
+    io.disconnect();
+  }
+}, { threshold: 0.2 });
+
+io.observe(wrap);
+```
+
+| Parameter | Value | Effect |
+|---|---|---|
+| `from` | `{ opacity: 0, y: 40 }` | Card starts invisible, 40 px below final position |
+| `to` | `{ opacity: 1, y: 0 }` | Card rises and fades in |
+| Spring config | `[180, 26]` | `tension: 180`, `friction: 26` — gentle, slightly bouncy |
+| Stagger | `i * 120 ms` | Cards reveal left-to-right (or top-to-bottom on mobile) |
+
+## Hover lift
+
+After the reveal spring is set up, a separate hover spring is applied directly to the `<figure>` so the card lifts upward on pointer enter:
+
+```js
+hover(card, card, { y: 0 }, { y: -8 }, [300, 22]);
+```
+
+The spring translates the card `8 px` upward on hover and returns it to `0 px` on pointer leave, using a slightly softer spring (`tension: 300, friction: 22`) for a smooth lift-and-settle feel.
+
+## CSS
+
+```css
+.testi {
+  background: var(--background);
+  padding: 5rem 1.5rem;   /* 6rem 2.5rem at 640px+ */
+}
+
+.testi-grid {
+  display: grid;
+  grid-template-columns: 1fr;          /* stacked on mobile */
+  gap: 1.25rem;
+  margin-top: 3.5rem;
+}
+@media (min-width: 768px) {
+  .testi-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.tcard {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;       /* quote top, footer bottom */
+  height: 100%;
+  border-radius: 1.5rem;
+  background: var(--surface);           /* #f4f4f4 */
+  padding: 1.75rem;
+  will-change: transform;               /* GPU layer for hover spring */
+}
+
+.tquote {
+  font-size: 2.25rem;
+  color: var(--brand);                  /* #2563c9 */
+  line-height: 1;
+}
+
+.tcard p {
+  font-size: 1.125rem;
+  line-height: 1.65;
+  color: var(--ink);
+  margin-top: 1rem;
+}
+
+.tfoot {
+  border-top: 1px solid var(--hairline);
+  padding-top: 1rem;
+  margin-top: 1.5rem;
+}
+.tfoot b    { font-weight: 500; }
+.tfoot span { display: block; font-size: .875rem; color: var(--ink-soft); }
+```
+
+## How to add or edit testimonials
+
+<Steps>
+  <Step title="Find the testis array">
+    Locate `const testis = [...]` in the `<script type="module">` block of `index.html`.
+  </Step>
+  <Step title="Add a new quote">
+    Append a three-element tuple:
+    ```js
+    [
+      "The drills here are the best I've seen at any club in the country.",
+      "Carlos Mendes",
+      "Performance Squad"
+    ]
+    ```
+  </Step>
+  <Step title="Check grid layout">
+    The CSS grid uses `repeat(3, 1fr)` on tablet and above. Four cards will cause the grid to wrap to a second row (two cards wide). If you want a consistent layout, change the column count:
+    ```css
+    @media (min-width: 768px) {
+      .testi-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    ```
+  </Step>
+  <Step title="Edit an existing quote">
+    Change the strings in any tuple directly. The quote text, name, and role are rendered as plain text inside `innerHTML`, so HTML entities (e.g. `&amp;`) will display literally — use plain Unicode characters instead.
+  </Step>
+</Steps>

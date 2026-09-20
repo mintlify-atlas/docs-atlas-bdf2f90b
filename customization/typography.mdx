@@ -1,0 +1,89 @@
+---
+title: "Typography and Fluid Type Scale in Baseline"
+sidebarTitle: "Typography"
+description: "Baseline uses the Onest typeface from Google Fonts with a viewport-relative fluid type scale — font sizes reflow continuously across all screen widths using rem and vw."
+---
+
+Baseline's typographic system is built around two interlocking ideas: a single, high-quality variable-weight typeface loaded from Google Fonts, and a fluid type scale that makes every `rem`-based size shrink and grow smoothly with the viewport width rather than jumping between fixed breakpoints. The result is a page that looks typographically intentional at every size from a 320 px phone to a 1920 px monitor without a single `clamp()` or media-query font-size override on individual elements.
+
+## Typeface — Onest
+
+Baseline uses **Onest**, a contemporary geometric sans-serif available on Google Fonts, loaded at weights `400` (regular) and `500` (medium). Both weights are declared in a single `family=Onest:wght@400;500` request with `display=swap` to avoid invisible text during font load.
+
+The three `<link>` tags in `<head>` that load the typeface are:
+
+```html
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500&display=swap" rel="stylesheet" />
+```
+
+The first two `preconnect` hints warm up the DNS and TLS handshake to both Google Fonts CDN origins before the stylesheet request fires, reducing the font load latency on first visit.
+
+## Fluid type scale
+
+The `html` element's `font-size` is set globally and then progressively overridden by four `max-width` media queries. Because every spacing and type size in Baseline is expressed in `rem` (which is relative to `html font-size`), all of them scale in proportion without any element-level changes:
+
+```css
+html { font-size: 16px }
+@media (max-width:1920px){ html{ font-size:0.833333vw } }
+@media (max-width:1440px){ html{ font-size:1.111111vw } }
+@media (max-width:1024px){ html{ font-size:1.5625vw } }
+@media (max-width:640px) { html{ font-size:4.444444vw } }
+```
+
+Each `vw` coefficient is chosen so that `1rem` equals exactly `16px` at the breakpoint's boundary:
+
+| Breakpoint | `font-size` value | `1rem` at boundary |
+|---|---|---|
+| Baseline (≥1920px) | `16px` | 16 px |
+| ≤ 1920 px | `0.833333vw` | 16 px at 1920 px |
+| ≤ 1440 px | `1.111111vw` | 16 px at 1440 px |
+| ≤ 1024 px | `1.5625vw` | 16 px at 1024 px |
+| ≤ 640 px | `4.444444vw` | ~28.4 px at 640 px → scales down with viewport |
+
+The mobile coefficient (`4.444444vw`) is larger than the others by design: at 640 px the root size is 28.4 px, which means `0.875rem` body text renders at roughly 24.9 px — comfortable for reading on small screens without zooming. As the viewport narrows below 640 px, the root size scales down continuously with it.
+
+## How rem sizing works with this scale
+
+At **1440 px** wide, `font-size: 1.111111vw` gives `1rem = 16 px` — exactly the same as a conventional fixed-font-size stylesheet. Every `rem` value you see in the CSS maps one-to-one with its `px` equivalent at 1440 px.
+
+At **640 px** wide, `font-size: 4.444444vw` gives `1rem ≈ 28.4 px`. The entire layout and all type sizes are proportionally larger relative to `px` — this is intentional, compensating for the lower pixel density of small viewports and reducing the need for media-query overrides on individual elements.
+
+Because the scale is continuous (not stepped), there are no sudden text-size jumps as the browser window is resized. Sizes interpolate smoothly between breakpoints.
+
+## Notable type sizes in the design
+
+| Element | Size value | Notes |
+|---|---|---|
+| Hero title (`.hero-title`) | `10vw` | Directly viewport-relative — bypasses the rem scale deliberately for a large, impactful display |
+| Tagline (`.tagline`) | `2.4rem` | Scales with the fluid rem scale; `font-weight: 500` |
+| Section headings (`.h-stack`) | `3rem` | Used for "Built for every level", "Tour Our World-Class Courts", etc. |
+| Ghost headings (`.ghost-h`) | `8.2vw` | Like the hero title, viewport-relative for decorative large text in the Trust section |
+| Program names (`.prog-name`) | `1.5rem` mobile / `1.875rem` ≥640 px | One of the few explicit breakpoint overrides on a type size |
+| Body / UI text | `0.875rem` – `1rem` | Used for descriptions, labels, button text, form fields, and most paragraph copy |
+| Eyebrow labels (`.eyebrow`) | `0.75rem` | Small-caps tracking labels above section headings |
+
+## Changing the typeface
+
+To swap Onest for a different Google Font, replace the `family=` parameter in the `<link>` href and update the `font-family` stack in the `body` rule:
+
+```html
+<!-- In <head> — replace Onest with, e.g., "DM Sans" at the same weights -->
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
+```
+
+```css
+/* In the <style> block — update the font-family stack */
+body {
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+}
+```
+
+The `system-ui, sans-serif` fallback stack ensures text remains readable in the fraction of a second before the web font loads, matching the operating system's default UI font.
+
+<Note>
+  The `body` rule also sets `-webkit-font-smoothing: antialiased`. This switches macOS and iOS from the default sub-pixel rendering to greyscale anti-aliasing, which makes thin strokes in Onest (and most modern sans-serifs) appear crisper and lighter on high-DPI Retina displays. It has no effect on Windows or Android.
+</Note>

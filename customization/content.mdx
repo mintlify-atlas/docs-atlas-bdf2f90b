@@ -1,0 +1,229 @@
+---
+title: "Editing Text Content in Baseline"
+sidebarTitle: "Content"
+description: "A guide to updating every piece of user-facing copy in Baseline — headlines, taglines, nav links, CTA buttons, and modal form labels — all in one HTML file."
+---
+
+Because Baseline is a **single-file template**, every word a visitor reads lives in exactly one place: `index.html`. There is no CMS, no build step, and no content file to synchronise — open the file in any text editor, make your change, save, and reload the browser. The sections below map each visible text element to its location in the file.
+
+---
+
+## Header / Navigation links
+
+The top navigation bar is rendered by a `<nav class="hdr-nav">` element inside the `<header>`. On desktop (≥ 1024 px) two anchor links are displayed; on smaller viewports the full-screen **menu overlay** takes over instead.
+
+```html
+<nav class="hdr-nav">
+  <a href="#programs">Programs &amp; Coaches</a>
+  <a href="#facilities">Club &amp; Events</a>
+</nav>
+```
+
+To rename or retarget a link, edit the text node and the `href` attribute. The `href` values are in-page anchor IDs (e.g. `#programs` scrolls to `<section id="programs">`), so make sure the corresponding `id` attribute exists on the target section when you change them.
+
+The **mobile menu overlay** contains its own separate link list:
+
+```html
+<nav class="menu-nav" id="menuNav">
+  <a href="#programs">Programs</a>
+  <a href="#facilities">Facilities</a>
+  <a href="#testimonials">Reviews</a>
+  <a href="#contact">Contact</a>
+</nav>
+```
+
+Update both `<nav>` blocks to keep the desktop and mobile menus in sync.
+
+---
+
+## Hero section copy
+
+The hero headline and tagline are **not static HTML strings** — they are injected by the JavaScript at the bottom of the file so the letter-clip reveal animation can wrap each word. Search for the following block:
+
+```js
+const heroTitleEl = document.getElementById("heroTitle");
+const heroTitleNodes = wordClips(heroTitleEl, "Own The Court");
+const heroTagEl = document.getElementById("heroTag");
+const heroTagNodes = stackedLines(heroTagEl, ["Show Up,", "Level Up"]);
+```
+
+- **`wordClips(heroTitleEl, "Own The Court")`** — the second argument is the large centred headline. Replace `"Own The Court"` with your own headline. Each space-separated word is wrapped in its own clip-span, so any word count works.
+- **`stackedLines(heroTagEl, ["Show Up,", "Level Up"])`** — the second argument is an array of lines for the tagline in the bottom-left of the hero. Each string becomes one stacked line; add or remove strings to change the line count.
+
+---
+
+## Hero slider branding
+
+The three-item collection carousel in the bottom-right corner of the hero is driven by the `collections` array:
+
+```js
+const collections = [
+  { img: `…/2.webp`, brand: "Baseline Pro",  title: "Featured Gear",  cta: "Shop the kit",    alt: "Player driving a backhand on a hard court" },
+  { img: `…/3.webp`, brand: "Court Series",  title: "Summer Drop",    cta: "View the line",   alt: "Player stretching for a forehand on clay"  },
+  { img: `…/5.webp`, brand: "Academy Kit",   title: "Junior Range",   cta: "Browse juniors",  alt: "Player set in a ready stance on clay"      }
+];
+```
+
+| Field   | Rendered as                                   |
+|---------|-----------------------------------------------|
+| `brand` | Small all-caps label above the slide title    |
+| `title` | Slide headline in slightly larger type        |
+| `cta`   | Underlined call-to-action link text (`→` appended automatically) |
+| `img`   | Thumbnail image — see the [Images guide](/customization/images) |
+| `alt`   | Accessible alt text for the thumbnail         |
+
+Change `brand` and `title` for each object to update the visible slide copy.
+
+---
+
+## CTA buttons
+
+Baseline uses `.pill` elements for every primary call-to-action. There are three trigger points you may want to relabel:
+
+**Hero header (desktop)** — a plain `<button>` with `data-open-modal`:
+
+```html
+<button class="booktxt" data-open-modal>Book a Visit</button>
+```
+
+**Footer CTA strip** — a `.pill.light` button that opens the same modal:
+
+```html
+<button class="pill light" data-open-modal …>
+  Book a Visit
+  <svg …>…</svg>
+</button>
+```
+
+**Mobile menu overlay** — the pill inside the menu panel:
+
+```html
+<button class="pill light" id="menuBook">Book a Visit
+  <svg …>…</svg>
+</button>
+```
+
+Change the text node inside each `<button>` to relabel the CTA. All three elements share the `data-open-modal` / `menuBook` wiring to open the booking modal, so you only need to change the label text.
+
+---
+
+## Programs list
+
+Training programs are defined in the `programs` JavaScript array and rendered dynamically:
+
+```js
+const programs = [
+  ["01", "Junior Development", "Fundamentals, footwork, and match play for ages 6–14.",       "#junior"],
+  ["02", "Performance Squad",  "High-volume training for competitive and ranked players.",     "#performance"],
+  ["03", "Adult Clinics",      "Small-group sessions to sharpen technique and fitness.",       "#adult"],
+  ["04", "Private Coaching",   "One-to-one sessions tailored to your goals and schedule.",    "#private"]
+];
+```
+
+Each sub-array maps to a rendered row as follows:
+
+| Index | Field   | Rendered element                             |
+|-------|---------|----------------------------------------------|
+| `[0]` | number  | `.prog-num` — the two-digit counter          |
+| `[1]` | name    | `.prog-name` — large row heading             |
+| `[2]` | desc    | `.prog-desc` — smaller descriptive text below the name |
+| `[3]` | href    | The `href` on the entire row `<a>` element   |
+
+Edit the strings directly in the array to update the copy. For adding or removing programs, see the [Programs Data guide](/customization/programs-data).
+
+---
+
+## Footer columns
+
+Below the footer CTA strip, three `<nav class="foot-col">` blocks form the sitemap. Each column has a heading (`<h3>`) and a list of anchor links:
+
+```html
+<nav><h3>Programs</h3><ul>
+  <li><a href="#junior">Junior Development</a></li>
+  <li><a href="#performance">Performance Squad</a></li>
+  <li><a href="#adult">Adult Clinics</a></li>
+  <li><a href="#private">Private Coaching</a></li>
+</ul></nav>
+
+<nav><h3>Club</h3><ul>
+  <li><a href="#membership">Membership</a></li>
+  <li><a href="#facilities">Facilities</a></li>
+  <li><a href="#club">Events</a></li>
+  <li><a href="#shop">Pro Shop</a></li>
+</ul></nav>
+
+<nav><h3>Company</h3><ul>
+  <li><a href="#about">About</a></li>
+  <li><a href="#programs">Coaches</a></li>
+  <li><a href="#careers">Careers</a></li>
+  <li><a href="#contact">Contact</a></li>
+</ul></nav>
+```
+
+Edit the `<h3>` text to rename a column heading, and edit the text nodes inside `<a>` tags to rename individual links. Update `href` values to point to the correct in-page anchors or external URLs.
+
+The fourth column is the brand/address block (`.foot-brand`). To update the club name, email, phone, or physical address, find:
+
+```html
+<p class="foot-blurb">A members' tennis club and academy …</p>
+<address>
+  <a href="mailto:play@baseline.club">play@baseline.club</a>
+  <a href="tel:+12125550148">+1 (212) 555-0148</a>
+  <span class="muted">120 Court Lane, New York</span>
+</address>
+```
+
+---
+
+## Booking modal
+
+The contact/booking modal contains an HTML form and a success state. The form fields are in `<form class="cf" id="cform">`:
+
+```html
+<form class="cf" id="cform" novalidate>
+  <div>
+    <label for="f-name">Full name</label>
+    <input id="f-name" name="name" type="text" placeholder="Alex Rivera">
+  </div>
+  <div>
+    <label for="f-email">Email</label>
+    <input id="f-email" name="email" type="email" placeholder="you@email.com">
+  </div>
+  <div>
+    <label for="f-msg">What would you like to play?</label>
+    <textarea id="f-msg" name="msg" rows="3"
+      placeholder="I'd love to try a private lesson on the clay courts…"></textarea>
+  </div>
+  <button type="submit" id="csubmit">Request a visit</button>
+</form>
+```
+
+- Change `<label>` text to rename a field label.
+- Change `placeholder` attributes to update the hint text inside each input.
+- Change the `<button>` text node (`Request a visit`) to relabel the submit button.
+
+The **success state** shown after submission is:
+
+```html
+<div class="success" id="csuccess" hidden>
+  …
+  <h3>Request received</h3>
+  <p id="cmsg"></p>
+  <button class="pill solid" data-close-modal>Done</button>
+</div>
+```
+
+The `<h3>` text and the `Done` button label are plain HTML — edit them directly. The personalised confirmation sentence in `<p id="cmsg">` is written by JavaScript:
+
+```js
+document.getElementById("cmsg").textContent =
+  `Thanks, ${first} — our team will be in touch to lock in your visit.`;
+```
+
+Edit the template literal string to customise the message.
+
+---
+
+<Tip>
+After editing any JavaScript data array (`programs`, `collections`, `stats`, etc.), save the file and perform a **hard refresh** (Ctrl+Shift+R on Windows/Linux, Cmd+Shift+R on macOS) to bypass the browser cache and see your changes immediately.
+</Tip>

@@ -1,0 +1,250 @@
+---
+title: "Trust Section: Coach Carousel and Club Credibility"
+sidebarTitle: "Trust"
+description: "The Trust section showcases coaches with an animated carousel, ghost-text headlines, and credibility stat badges — toggled by the trustSlides data array."
+---
+
+The Trust section (`id="trust"`) builds social proof through two complementary layers: a pair of credibility badges at the top and an animated coach carousel that fills the rest of the section. Large ghost-text words float behind the coach card and scroll horizontally via parallax, while prev/next arrow buttons and dot indicators let visitors cycle through all three coaches.
+
+## HTML structure
+
+```html
+<section class="trust" id="trust">
+
+  <!-- Credibility badges row -->
+  <div class="trust-top">
+    <div class="pct"
+         data-inview='{"opacity":0,"scale":0.9}'
+         data-to='{"opacity":1,"scale":1}'
+         data-cfg="220,22">
+      <b>100%</b>
+      <small>Coaching built around your game</small>
+    </div>
+    <div class="badge-card"
+         data-inview='{"opacity":0,"y":24}'
+         data-to='{"opacity":1,"y":0}'
+         data-cfg="200,26"
+         data-delay="120">
+      <div class="chip">#01</div>
+      <div>
+        <h3>Trusted by serious players</h3>
+        <p>From first-timers to nationally ranked juniors, players train here because
+           the progress shows up on the scoreboard.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ghost headline (parallax words behind coach card) -->
+  <h2 class="ghost-h" id="ghostH">
+    <div class="ghost-row">
+      <span class="gw" data-i="0"></span>
+      <span class="gw" data-i="1"></span>
+    </div>
+    <div class="ghost-row">
+      <span class="gw" data-i="2" style="color:var(--ink)"></span>
+      <span class="gw" data-i="3"></span>
+    </div>
+  </h2>
+
+  <!-- Coach card (absolutely centred on tablet+) -->
+  <div class="coach-wrap"
+       data-inview='{"opacity":0,"y":60,"scale":0.92}'
+       data-to='{"opacity":1,"y":0,"scale":1}'
+       data-cfg="170,26">
+    <figure class="coach">
+      <img id="coachImg" src="" alt="" loading="lazy">
+      <figcaption class="coach-cap">
+        <b id="coachName"></b>
+        <span id="coachRole"></span>
+      </figcaption>
+    </figure>
+  </div>
+
+  <!-- Carousel controls -->
+  <div class="ctrls">
+    <button class="abtn outline" id="trustPrev" aria-label="Previous coach">…</button>
+    <div class="cdots dark" id="trustDots"></div>
+    <button class="abtn solid" id="trustNext" aria-label="Next coach">…</button>
+  </div>
+
+</section>
+```
+
+<Note>
+The `<img id="coachImg">`, `<b id="coachName">`, and `<span id="coachRole">` elements start empty. They are populated by `renderTrust()` on first call and on every carousel advance.
+</Note>
+
+## `trustSlides` data array
+
+Each slide entry holds a four-word headline array (one word per ghost-text cell), the coach portrait URL, name, role, and an accessible alt string:
+
+```js
+const trustSlides = [
+  {
+    headline: ["Expert", "Result-", "Driven", "Coaching"],
+    img: `${BASE}/5.webp`,
+    name: "Marco Vidal",
+    role: "Head Coach",
+    alt: "Head coach set in a ready stance on clay"
+  },
+  {
+    headline: ["Sharper", "Faster", "Stronger", "Player"],
+    img: `${BASE}/4.webp`,
+    name: "Elena Sokolova",
+    role: "Performance Coach",
+    alt: "Performance coach following through on a serve"
+  },
+  {
+    headline: ["Future", "Champions", "Start", "Here"],
+    img: `${BASE}/1.webp`,
+    name: "James Okoro",
+    role: "Juniors Lead",
+    alt: "Juniors lead waiting to return on clay"
+  }
+];
+```
+
+<Tip>
+To add a fourth coach, append a new object to `trustSlides` with the same five keys. The dot indicators and prev/next buttons update automatically because they are re-rendered on every `renderTrust()` call.
+</Tip>
+
+## Ghost headline parallax words
+
+The four `.gw` spans (`data-i="0"` through `data-i="3"`) act as containers for the headline words. Each span is registered with `addParallax()` to drift horizontally as the section scrolls, creating depth behind the coach card:
+
+```js
+const ghostParallax = [[-3, 3], [3, -3], [-2, 4], [4, -3]];
+
+gwEls.forEach((el, i) => {
+  const inner = document.createElement("span");
+  el.appendChild(inner);
+  // from → to in percent on the X axis, scoped to the #trust section
+  addParallax(el, ghostParallax[i][0], ghostParallax[i][1], "x",
+              document.getElementById("trust"));
+});
+```
+
+Each pair `[from, to]` specifies the horizontal translation in percent at the two extremes of the section's scroll window — odd indices drift right, even indices drift left, so the words fan apart as the user scrolls.
+
+The ghost headline is invisible (`color: var(--ghost)`) except for word at index `2`, which is styled `color: var(--ink)` to create a bold contrast accent.
+
+## `coachSp` — coach image spring transition
+
+When the carousel advances, the coach photo crossfades using a dedicated opacity-only Spring so the image swap never shows a half-loaded state:
+
+```js
+const coachSp = mkSpring(
+  coachImg,
+  { opacity: 0 },
+  { opacity: 1 },
+  [260, 26],
+  (v, el) => { el.style.opacity = v.opacity; }   // custom apply: opacity only
+);
+```
+
+Inside `renderTrust()`, the spring is reset to zero and immediately animated to one, so every slide change produces a clean fade-in on the new portrait:
+
+```js
+coachSp.x.opacity = 0;   // snap to zero without transition
+coachSp.to({ opacity: 1 });
+```
+
+## `renderTrust` and `setTrust` functions
+
+`renderTrust(i, animate)` is the single source of truth for the carousel's visual state. It updates the ghost words, the coach image, name, role, and the dot indicators all at once:
+
+```js
+function renderTrust(i, animate = true) {
+  const s = trustSlides[i];
+
+  // Rewrite each ghost-text cell and optionally animate it in
+  ghostNodes = gwEls.map((el, wi) => {
+    const nodes = wordClips(el, s.headline[wi], { padBottom: "0.12em" });
+    return nodes[0];
+  });
+  if (animate) {
+    ghostNodes.forEach((n, wi) =>
+      playClips([n], { stagger: 0, base: wi * 70, dur: 700 })
+    );
+  }
+
+  // Swap coach portrait with a fade
+  coachImg.src = s.img;
+  coachImg.alt = s.alt;
+  document.getElementById("coachName").textContent = s.name;
+  document.getElementById("coachRole").textContent = s.role;
+  coachSp.x.opacity = 0;
+  coachSp.to({ opacity: 1 });
+
+  // Re-render dot indicators
+  renderDots(trustDots, trustSlides.length, i, setTrust, "dark");
+}
+
+function setTrust(i) {
+  trustIdx = (i + trustSlides.length) % trustSlides.length; // wraps around
+  renderTrust(trustIdx);
+}
+```
+
+`renderTrust(0, false)` is called on page load with `animate = false` so the initial state appears instantly rather than flying in before the loader has even dismissed. The section's `IntersectionObserver` then fires `renderTrust(trustIdx)` (with animation) the first time the ghost headline enters the viewport:
+
+```js
+new IntersectionObserver((en, io) => {
+  if (en[0].isIntersecting) { renderTrust(trustIdx); io.disconnect(); }
+}, { threshold: 0.2 })
+  .observe(document.getElementById("ghostH"));
+```
+
+## Credibility stat badges (PCT circles)
+
+The two `.pct` circles and the `.badge-card` panel are each wired to the generic inview spring system via `data-inview` / `data-to` / `data-cfg` attributes, so no extra JavaScript is needed:
+
+| Element | Spring config `[tension, friction]` | Delay |
+|---|---|---|
+| `.pct` (100% circle) | `[220, 22]` | 0 ms |
+| `.badge-card` (#01 panel) | `[200, 26]` | 120 ms |
+
+The `.pct` circle fades in while also scaling up from `0.9 → 1.0`, giving a subtle pop. The badge card translates upward from `y: 24 → 0` and fades in.
+
+```css
+.pct {
+  width: 7rem;
+  height: 7rem;
+  border-radius: 62.5rem;           /* pill / circle */
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.pct b    { font-size: 1.5rem; font-weight: 500; }
+.pct small { font-size: .6rem; color: var(--ink-soft); }
+```
+
+## How to add or remove coach slides
+
+<Steps>
+  <Step title="Open index.html and locate the trustSlides array">
+    Find the `const trustSlides = [...]` declaration in the `<script type="module">` block.
+  </Step>
+  <Step title="Add a new slide object">
+    Append an object with exactly five keys: `headline` (4-element string array), `img` (URL), `name`, `role`, and `alt`.
+    ```js
+    {
+      headline: ["Serve", "Like", "A", "Pro"],
+      img: `${BASE}/your-coach-photo.webp`,
+      name: "Sofia Ramos",
+      role: "Serve Specialist",
+      alt: "Sofia Ramos tossing a serve on the hard court"
+    }
+    ```
+  </Step>
+  <Step title="Upload the portrait image">
+    Place the image at the path referenced in `img`. The recommended aspect ratio is 3:4 (portrait orientation) to match the `.coach` card's `aspect-ratio: 3/4` CSS rule.
+  </Step>
+  <Step title="Verify the ghost headline">
+    The `headline` array must have exactly **four** entries — one per `.gw` cell in the HTML. Fewer entries will leave cells blank; more will be silently ignored.
+  </Step>
+</Steps>
+
+To **remove** a coach slide, delete its object from the array. The dot count and carousel navigation update automatically on the next render.

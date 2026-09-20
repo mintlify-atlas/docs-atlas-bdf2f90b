@@ -1,0 +1,216 @@
+---
+title: "Facilities Section: Court Gallery and Club Overview"
+sidebarTitle: "Facilities"
+description: "The Facilities section pairs a court image gallery with a word-fade body text reveal, showing clay and hard courts with glass-morphism captions."
+---
+
+The Facilities section (`id="facilities"`) sits directly below the Programs section and uses a negative top margin (`margin-top: -2.5rem`) to overlap it slightly, reinforcing the layered card aesthetic. The layout splits into two columns on tablets: a text-and-icon introduction on the left and a side-by-side court card gallery on the right. The body paragraph word-fades in word by word as the section enters the viewport, and the court photos scale up subtly on hover.
+
+## HTML structure
+
+```html
+<section class="facilities" id="facilities">
+  <div class="fac-grid">
+
+    <!-- Left column: intro copy -->
+    <div class="fac-intro">
+      <img
+        class="fac-icon"
+        src="https://api.getlayers.ai/storage/v1/object/public/public/assets/baseline-88535e4000/3.webp"
+        alt="Player stretching for a forehand on clay"
+        loading="lazy"
+        data-inview='{"opacity":0,"scale":0.85}'
+        data-to='{"opacity":1,"scale":1}'
+        data-cfg="240,20"
+      >
+      <h2
+        class="h-stack"
+        data-lines="Tour Our|World-Class|Courts"
+        data-stagger="120"
+        style="margin-top:1.5rem"
+      ></h2>
+      <p class="fac-body" id="facBody">
+        Reserve a court for focused practice, squad drills, or private sessions
+        — and train in the same conditions you'll compete in.
+      </p>
+    </div>
+
+    <!-- Right column: court card gallery -->
+    <div class="court-cards">
+
+      <figure
+        class="court"
+        data-inview='{"opacity":0,"y":48}'
+        data-to='{"opacity":1,"y":0}'
+        data-cfg="180,26"
+        data-delay="0"
+        data-hoverscale
+      >
+        <img
+          src="https://api.getlayers.ai/storage/v1/object/public/public/assets/baseline-88535e4000/1.webp"
+          alt="Player on the baseline of an outdoor clay court"
+          loading="lazy"
+        >
+        <figcaption class="court-cap clay">
+          <b>Redline Clay</b>
+          <span>A fast outdoor clay court tuned for long, physical rallies.</span>
+        </figcaption>
+      </figure>
+
+      <figure
+        class="court"
+        data-inview='{"opacity":0,"y":48}'
+        data-to='{"opacity":1,"y":0}'
+        data-cfg="180,26"
+        data-delay="140"
+        data-hoverscale
+      >
+        <img
+          src="https://api.getlayers.ai/storage/v1/object/public/public/assets/baseline-88535e4000/4.webp"
+          alt="Player following through on a blue hard court"
+          loading="lazy"
+        >
+        <figcaption class="court-cap blue">
+          <b>Harbor Court</b>
+          <span>A sheltered hard court built for precision and night play.</span>
+        </figcaption>
+      </figure>
+
+    </div>
+  </div>
+</section>
+```
+
+<Note>
+The second court card (`.court:nth-child(2)`) has `margin-bottom: 2rem` applied in CSS, which staggers the two cards vertically so they sit at different heights — an intentional design detail that adds rhythm to the gallery.
+</Note>
+
+## Court cards
+
+| Card | CSS modifier | Title | Description |
+|---|---|---|---|
+| Redline Clay | `.court-cap.clay` | Redline Clay | A fast outdoor clay court tuned for long, physical rallies. |
+| Harbor Court | `.court-cap.blue` | Harbor Court | A sheltered hard court built for precision and night play. |
+
+Both cards use the same inview spring (`tension: 180, friction: 26`, from `{ opacity: 0, y: 48 }`), but Harbor Court has a 140 ms delay so it settles after the clay court, reading left-to-right.
+
+**To swap a court image**, replace the `src` attribute on the `<img>` inside the relevant `<figure>`. Update the `alt` text to accurately describe the new image. The image fills its container via `object-fit: cover` at a fixed `aspect-ratio: 3/4`.
+
+## `.court-cap` glassmorphism overlay
+
+Each court card has an absolutely-positioned `<figcaption>` that sits 0.75 rem from the bottom and sides of the card. The two colour variants are:
+
+```css
+/* Clay court: brand-deep tint */
+.court-cap.clay {
+  background: rgba(15, 47, 99, 0.4);
+}
+
+/* Hard court: teal tint */
+.court-cap.blue {
+  background: rgba(11, 110, 151, 0.55);
+}
+
+/* Shared caption styles */
+.court-cap {
+  position: absolute;
+  left: .75rem; right: .75rem; bottom: .75rem;
+  border-radius: .75rem;
+  backdrop-filter: blur(8px);
+  color: #fff;
+  padding: .75rem 1rem;
+}
+.court-cap b    { display: block; font-size: .875rem; font-weight: 500; }
+.court-cap span { font-size: .65rem; opacity: .85; }
+```
+
+To add a third court card, duplicate a `<figure class="court">` block, set new `data-delay`, update the image and caption text, and choose or create a `.court-cap` colour variant.
+
+## `facBody` word-fade animation
+
+The body paragraph animates in word by word rather than as a single block. The script reads the element's initial `textContent`, clears it, then rebuilds it as individual `<span class="wfade">` nodes — one per word — each with a calculated CSS transition delay:
+
+```js
+const facBody = document.getElementById("facBody");
+
+(function () {
+  const text = facBody.textContent.trim();
+  facBody.textContent = "";
+
+  const words = text.split(" ").map((w, i) => {
+    const s = document.createElement("span");
+    s.className = "wfade";
+    s.textContent = w;
+    // base delay 250 ms + 28 ms per word
+    s.style.transition =
+      `transform 700ms ${EASE.easeOutQuart} ${250 + i * 28}ms,
+       opacity  700ms ${EASE.easeOutQuart} ${250 + i * 28}ms`;
+    facBody.appendChild(s);
+    facBody.appendChild(document.createTextNode(" ")); // preserve spaces
+    return s;
+  });
+
+  const io = new IntersectionObserver(en => {
+    if (en[0].isIntersecting) {
+      words.forEach(w => w.classList.add("go")); // triggers CSS transition
+      io.disconnect();
+    }
+  }, { threshold: 0.2 });
+
+  io.observe(facBody);
+})();
+```
+
+The `.wfade` class starts each word at `translateY(18px)` and `opacity: 0`. Adding `.go` transitions both properties to their natural values:
+
+```css
+.wfade     { display: inline-block; transform: translateY(18px); opacity: 0; }
+.wfade.go  { transform: translateY(0);   opacity: 1; }
+```
+
+<Tip>
+To change the cascade speed, adjust the `28` ms-per-word multiplier. Lower values make words appear more simultaneously; higher values create a more pronounced typewriter effect. The base delay of `250 ms` gives the heading time to begin animating first.
+</Tip>
+
+## Hover scale on court images
+
+Both court `<figure>` elements carry the `data-hoverscale` attribute. After the DOM is built, a single selector applies a spring-powered hover effect to every element with that attribute:
+
+```js
+document.querySelectorAll("[data-hoverscale]").forEach(fig => {
+  hover(fig, fig.querySelector("img"), { scale: 1 }, { scale: 1.03 }, [300, 22]);
+});
+```
+
+The image scales from `1.0` to `1.03` on hover — subtle enough to not clip outside the card's `overflow: hidden` boundary.
+
+## CSS layout
+
+```css
+.facilities {
+  background: var(--background);
+  border-radius: 2rem;          /* radius-card-lg */
+  margin-top: -2.5rem;          /* overlaps Programs card */
+  padding: 4rem 1.5rem 5rem;
+  position: relative;
+}
+
+.fac-grid {
+  display: grid;
+  grid-template-columns: 1fr;   /* single column on mobile */
+  align-items: end;
+  gap: 2.5rem;
+}
+@media (min-width: 768px) {
+  .fac-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.court {
+  flex: 1;
+  position: relative;
+  aspect-ratio: 3/4;
+  border-radius: 1.5rem;
+  overflow: hidden;
+}
+.court:nth-child(2) { margin-bottom: 2rem; } /* vertical stagger */
+```

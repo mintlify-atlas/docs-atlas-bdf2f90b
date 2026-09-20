@@ -1,0 +1,144 @@
+---
+title: "Stats Section: Club-at-a-Glance Number Grid"
+sidebarTitle: "Stats"
+description: "The Stats section displays four key club metrics in a dark brand-coloured grid, each animating in on scroll via the spring engine."
+---
+
+The Stats section has no `id` attribute — it is selected in CSS via the `.stats` class and positioned by its place in the document flow. Set against the deep brand colour (`--brand-deep: #0f2f63`), it presents four key metrics in a 2×2 grid on mobile that expands to a 4-column row on large screens. Each stat element springs upward and fades in with a staggered delay as it enters the viewport.
+
+## HTML structure
+
+The section uses a `<dl>` (description list) for accessible semantics. The visible number is a `<dd><b>` while the label is both a visually-hidden `<dt>` and a visible `<span>` inside the `<dd>`:
+
+```html
+<section class="stats">
+  <span class="eyebrow light"><i></i>By the numbers</span>
+  <h2 class="h-stack" data-lines="A club that|keeps score"></h2>
+  <dl class="stat-grid" id="statGrid"></dl>
+</section>
+```
+
+The `<dl id="statGrid">` is populated entirely by JavaScript. Each `.stat` `<div>` is appended at runtime.
+
+## `stats` data array
+
+```js
+const stats = [
+  ["24",   "Certified coaches"],
+  ["12",   "Championship courts"],
+  ["9K+",  "Members training"],
+  ["15",   "Years on the baseline"]
+];
+```
+
+<Note>
+The values are plain strings, so any suffix (`+`, `K+`, ordinal indicators) is included directly in the first element. There is no number-counting animation — the final value is rendered immediately when the element enters the viewport and the spring translates it into position.
+</Note>
+
+## DOM construction and spring animation
+
+For each entry, a `<div class="stat">` is created, given its inner markup, appended to the grid, and immediately equipped with an inview spring and an `IntersectionObserver`:
+
+```js
+const statGrid = document.getElementById("statGrid");
+
+stats.forEach(([v, l], i) => {
+  const d = document.createElement("div");
+  d.className = "stat";
+
+  // dt is screen-reader only; the visible label lives in the span
+  d.innerHTML = `
+    <dt class="sr-only">${l}</dt>
+    <dd><b>${v}</b><span>${l}</span></dd>`;
+
+  statGrid.appendChild(d);
+
+  // Spring starts the element invisible and 30 px below its final position
+  const sp = mkSpring(d, { opacity: 0, y: 30 }, { opacity: 1, y: 0 }, [180, 24]);
+
+  const io = new IntersectionObserver(en => {
+    if (en[0].isIntersecting) {
+      setTimeout(() => sp.to({ opacity: 1, y: 0 }), i * 110); // 110 ms per stat
+      io.disconnect();
+    }
+  }, { threshold: 0.2 });
+
+  io.observe(d);
+});
+```
+
+| Parameter | Value | Effect |
+|---|---|---|
+| `from` | `{ opacity: 0, y: 30 }` | Stat starts invisible, 30 px below resting position |
+| `to` | `{ opacity: 1, y: 0 }` | Stat rises and fades in |
+| Spring config | `[180, 24]` | `tension: 180`, `friction: 24` — medium-energy spring |
+| Stagger | `i * 110 ms` | Stats reveal left-to-right with 110 ms between each |
+
+The result is a left-to-right cascade: the first stat begins immediately when the grid enters the viewport, and each subsequent stat follows 110 ms later.
+
+## CSS layout and typography
+
+```css
+.stats {
+  background: var(--brand-deep);    /* #0f2f63 */
+  color: #fff;
+  border-radius: 2rem;              /* radius-card-lg */
+  margin-top: .75rem;
+  padding: 5rem 1.5rem;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);   /* 2 columns on mobile */
+  column-gap: 2rem;
+  row-gap: 3rem;
+  margin-top: 4rem;
+}
+@media (min-width: 1024px) {
+  .stat-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.stat {
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  padding-top: 1.25rem;
+}
+.stat b {
+  display: block;
+  font-size: 3.75rem;       /* 4.5rem at 640px+ */
+  font-weight: 500;
+  letter-spacing: -.02em;
+  line-height: 1;
+}
+.stat span {
+  display: block;
+  font-size: .875rem;
+  color: rgba(255, 255, 255, 0.65);
+  margin-top: .75rem;
+}
+```
+
+The horizontal rule above each stat is a `border-top` on `.stat` rather than a separate element, keeping the markup minimal.
+
+## How to edit the values
+
+<Steps>
+  <Step title="Locate the stats array">
+    Find `const stats = [...]` in the `<script type="module">` block of `index.html`.
+  </Step>
+  <Step title="Update a value or label">
+    Change either string in the two-element tuple. The first string becomes the large number; the second becomes the label beneath it.
+    ```js
+    // Before
+    ["24", "Certified coaches"]
+    // After
+    ["28", "Certified coaches"]
+    ```
+  </Step>
+  <Step title="Add a stat (optional)">
+    Append a new `["value", "label"]` tuple. On desktop the grid will expand beyond four columns; consider adjusting `grid-template-columns` in CSS if you want a different layout (e.g. `repeat(3, 1fr)` for six stats in two rows of three).
+  </Step>
+</Steps>
+
+<Warning>
+Removing stats below four will leave the grid with empty columns on desktop. If you drop to three stats, change `grid-template-columns` to `repeat(3, 1fr)` at the `1024px` breakpoint so the layout stays balanced.
+</Warning>

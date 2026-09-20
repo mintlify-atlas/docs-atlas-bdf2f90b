@@ -1,0 +1,92 @@
+---
+title: "CSS Custom Properties: Theming Baseline"
+sidebarTitle: "CSS Variables"
+description: "Baseline's full visual identity lives in `:root` CSS custom properties. Change brand colors, surface tones, and border radii in one place to retheme the entire page."
+---
+
+Every color, surface tone, and border radius in Baseline is defined as a CSS custom property on `:root`. Because every component — from the hero gradient to the modal panel — references these tokens via `var(--token-name)`, a single change cascades everywhere on the page with zero find-and-replace work. There is no build step, no Sass variable compilation, and no JavaScript theming layer: it's pure CSS.
+
+## Complete `:root` block
+
+The entire token set lives at the top of the `<style>` block in `index.html`:
+
+```css
+:root{
+  --background:#ffffff; --foreground:#0a0a0a;
+  --brand:#2563c9; --brand-deep:#0f2f63; --brand-light:#5790e6;
+  --accent-teal:#0b6e97; --surface:#f4f4f4; --surface-card:#ffffff;
+  --ink:#0a0a0a; --ink-soft:#717784; --ghost:#d7dae1; --hairline:#e6e8ec;
+  --on-brand:#ffffff;
+  --radius-card:1.5rem; --radius-card-lg:2rem; --radius-pill:62.5rem;
+}
+```
+
+## Color tokens
+
+| Token | Default Value | Usage |
+|---|---|---|
+| `--background` | `#ffffff` | Page background; also used as the fill behind form inputs and some inset surfaces |
+| `--foreground` | `#0a0a0a` | Default text color applied via `color: var(--foreground)` on `body` |
+| `--brand` | `#2563c9` | Primary brand blue — used on the focus ring, the quote mark in testimonial cards, the success tick circle, and eyebrow dot accents |
+| `--brand-deep` | `#0f2f63` | Deep navy — fills the hero section background, the stats section, the footer, the menu overlay, and the loader screen |
+| `--brand-light` | `#5790e6` | Lighter brand blue — used for focus outlines (`outline: 2px solid var(--brand-light)`), hover states on `.pill.light`, and light eyebrow dots |
+| `--accent-teal` | `#0b6e97` | Teal accent — applied to the Harbor Court caption overlay (`rgba(11,110,151,.55)`) and available for additional accent use |
+| `--surface` | `#f4f4f4` | Off-white surface for the programs section background, testimonial cards, percentage circles, badge cards, and the contact form success state |
+| `--surface-card` | `#ffffff` | Used specifically for the modal panel background, keeping it pure white even if `--background` is changed |
+| `--ink` | `#0a0a0a` | Near-black used for body text, the active carousel dot, solid button backgrounds, and form labels |
+| `--ink-soft` | `#717784` | Muted grey for secondary text — program descriptions, stat labels, testimonial roles, form labels, and facility body copy |
+| `--ghost` | `#d7dae1` | Pale grey for the decorative large ghost heading text in the Trust section and inactive carousel dots |
+| `--hairline` | `#e6e8ec` | Very light grey for divider lines — program list borders, testimonial card footer separators, and form input borders |
+| `--on-brand` | `#ffffff` | White text intended for use on brand-colored backgrounds; defined for semantic clarity |
+
+## Radius tokens
+
+| Token | Default Value | Usage |
+|---|---|---|
+| `--radius-card` | `1.5rem` | Standard card radius — used on program rows, testimonial cards, glass/slider cards, court cards, modal panel, form inputs, and badge cards |
+| `--radius-card-lg` | `2rem` | Large card radius — used on the hero section, the stats section, the footer, and the facilities section (which overlaps the section above it) |
+| `--radius-pill` | `62.5rem` | Effectively infinite radius, producing a pill or circle shape — used on buttons (`.pill`, `.abtn`), percentage circles, dots, and the loader progress bar |
+
+## How to retheme
+
+Changing `--brand` is enough to shift the primary accent colour across the focus ring, testimonial quotes, and eyebrow dots. Here's a diff replacing the default royal blue with a forest green:
+
+```diff
+ :root{
+   --background:#ffffff; --foreground:#0a0a0a;
+-  --brand:#2563c9; --brand-deep:#0f2f63; --brand-light:#5790e6;
++  --brand:#1a7a4a; --brand-deep:#0d3d24; --brand-light:#3db06e;
+   --accent-teal:#0b6e97; --surface:#f4f4f4; --surface-card:#ffffff;
+   --ink:#0a0a0a; --ink-soft:#717784; --ghost:#d7dae1; --hairline:#e6e8ec;
+   --on-brand:#ffffff;
+   --radius-card:1.5rem; --radius-card-lg:2rem; --radius-pill:62.5rem;
+ }
+```
+
+Because every section that uses brand colour (`--brand-deep` for the hero/stats/footer fills, `--brand` for accents, `--brand-light` for hover states) reads from `:root`, the entire page repaints without touching a single other line.
+
+## Dark mode note
+
+The current build is light-mode only — `:root` declares a single, fixed light-palette set of tokens. To add true dark mode support, wrap an overriding token set in a `@media (prefers-color-scheme: dark)` block immediately after `:root`:
+
+```css
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #f4f4f4;
+    --surface: #1a1a1a;
+    --surface-card: #111111;
+    --ink: #f4f4f4;
+    --ink-soft: #9099a6;
+    --ghost: #2a2d35;
+    --hairline: #2a2d35;
+    /* --brand, --brand-deep, --brand-light, etc. can stay the same or be adjusted */
+  }
+}
+```
+
+This override only affects tokens that need to change for dark backgrounds; brand colours typically remain stable.
+
+<Tip>
+  Open your browser DevTools, select the `<html>` element in the Elements panel, and edit `--brand` directly on `:root` in the Styles pane. Every branded element on the page updates in real time, letting you audition a full retheme before touching a single character in `index.html`.
+</Tip>
