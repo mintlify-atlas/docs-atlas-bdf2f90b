@@ -1,7 +1,7 @@
 ---
-title: "Typography and Fluid Type Scale in Baseline"
+title: "Baseline Typography: Onest Font and Fluid Type Scale"
 sidebarTitle: "Typography"
-description: "Baseline uses the Onest typeface from Google Fonts with a viewport-relative fluid type scale — font sizes reflow continuously across all screen widths using rem and vw."
+description: "Baseline loads Onest from Google Fonts at weights 400 and 500, scaling all rem-based sizes through four max-width breakpoints for continuous type reflow."
 ---
 
 Baseline's typographic system is built around two interlocking ideas: a single, high-quality variable-weight typeface loaded from Google Fonts, and a fluid type scale that makes every `rem`-based size shrink and grow smoothly with the viewport width rather than jumping between fixed breakpoints. The result is a page that looks typographically intentional at every size from a 320 px phone to a 1920 px monitor without a single `clamp()` or media-query font-size override on individual elements.

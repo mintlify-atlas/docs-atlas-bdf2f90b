@@ -1,7 +1,7 @@
 ---
-title: "Serving and Deploying Baseline"
+title: "Serving and Deploying the Baseline Tennis Club Site"
 sidebarTitle: "Serving"
-description: "Baseline is a single HTML file. Deploy it to Vercel, Netlify, GitHub Pages, or any static host — no build step needed. Learn your options for local and production serving."
+description: "Baseline is one HTML file — no build step required. Serve locally with Python or Node, or deploy to Vercel, Netlify, or GitHub Pages in minutes."
 ---
 
 Baseline ships as a single `index.html` file containing all markup, inline CSS, and vanilla JavaScript. Because there is no build step, no framework, and no package manager, deploying it is as simple as putting one file on any static host. Vercel, Netlify, GitHub Pages, a bare nginx server, or even a USB stick running a local HTTP server will all work equally well.
@@ -12,7 +12,7 @@ Baseline loads [Lenis](https://github.com/darkroomengineering/lenis) smooth-scro
 
 ```html
 <script type="importmap">
-  { "imports": { "lenis": "https://cdn.jsdelivr.net/npm/lenis@1.1.18/+esm" } }
+{ "imports": { "lenis": "https://cdn.jsdelivr.net/npm/lenis@1.1.18/+esm" } }
 </script>
 ```
 
@@ -33,7 +33,7 @@ python3 -m http.server 8000
 ```
 
 ```bash node
-npx serve .
+npx serve
 ```
 
 ```bash php

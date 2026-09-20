@@ -1,5 +1,5 @@
 ---
-title: "Accessibility Features and Compliance in Baseline"
+title: "Accessibility Features and ARIA Compliance in Baseline"
 sidebarTitle: "Accessibility"
 description: "Baseline implements ARIA dialog patterns, keyboard navigation, focus management, prefers-reduced-motion support, and minimum touch targets throughout."
 ---
@@ -41,14 +41,15 @@ When the hamburger button is tapped, `openMenu()` does three things in sequence:
 
 ```js
 function openMenu() {
-  menu.setAttribute("aria-hidden", "false");
+  menu.classList.add("open"); menu.setAttribute("aria-hidden", "false");
   mainContent.inert = true;
-  lock();
   // ...spring animations
+  lock();
 }
 
 function closeMenu() {
-  menu.setAttribute("aria-hidden", "true");
+  // ...spring animations
+  menu.classList.remove("open"); menu.setAttribute("aria-hidden", "true");
   mainContent.inert = false;
   unlock();
 }
@@ -148,11 +149,10 @@ Baseline uses the full set of HTML sectioning and figure elements throughout:
 |---|---|
 | `<header>` | Site navigation bar inside the hero section |
 | `<main id="mainContent">` | Wraps all page content; made `inert` during overlays |
-| `<nav>` | Desktop nav, footer sitemap columns, social and legal link groups — each with a unique `aria-label` |
+| `<nav>` | Desktop nav, mobile menu nav, footer sitemap columns; social and legal link groups carry `aria-label="Social"` and `aria-label="Legal"` |
 | `<footer>` | Site footer with CTA, sitemap, and copyright |
 | `<section>` | Hero, Trust, Programs, Facilities, Stats, Testimonials — each with a meaningful `id` anchor |
-| `<figure>` / `<figcaption>` | Coach photo with name and role; court photos with surface descriptions |
-| `<blockquote>` pattern | Testimonial cards use `<figure>` with a `<figcaption>` for member attribution |
+| `<figure>` / `<figcaption>` | Coach photo with name and role; court photos with surface descriptions; testimonial cards (`<figure class="tcard">` / `<figcaption class="tfoot">`) for member attribution |
 | `<address>` | Contact details (email, phone, location) in the footer |
 | `<dl>` / `<dt>` / `<dd>` | Stats grid — term/value pairs with `.sr-only` terms |
 

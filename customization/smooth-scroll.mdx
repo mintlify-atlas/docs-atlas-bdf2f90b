@@ -1,7 +1,7 @@
 ---
-title: "Lenis Smooth Scroll: Setup and Configuration"
+title: "Lenis Smooth Scroll: Import Map, Setup, and RAF Loop"
 sidebarTitle: "Smooth Scroll"
-description: "Baseline integrates Lenis smooth scroll via a CDN ES module import map — no npm install. Learn how the import map works, how Lenis is initialised, and how to tune scroll behaviour."
+description: "Baseline uses Lenis smooth scroll via a CDN import map — no build step required. Learn how scrolling is initialised, locked, and tied to anchor links."
 ---
 
 Baseline uses [Lenis](https://github.com/darkroomengineering/lenis) for smooth, momentum-based scrolling. Rather than bundling Lenis through a package manager, Baseline loads it as a native ES module straight from a CDN, keeping the project completely build-tool-free. The entire integration — import map, initialisation, RAF loop, lock helpers, and anchor interception — lives inside the single `<script type="module">` block in `index.html`.

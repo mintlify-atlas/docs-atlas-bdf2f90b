@@ -1,7 +1,7 @@
 ---
-title: "Page Layout and Responsive Spacing in Baseline"
+title: "Page Layout and Responsive Breakpoints in Baseline"
 sidebarTitle: "Layout"
-description: "How Baseline handles page-level layout — the main container padding, section card radii, section stacking order, and the breakpoints used for responsive reflow."
+description: "Baseline wraps sections in a main container with inset padding and uses three min-width breakpoints to reflow rounded section cards from mobile to desktop."
 ---
 
 Baseline's layout model is deliberately minimal: a single `<main>` element wraps every section in a vertical stack, and sections are styled as rounded cards that sit inside the thin inset created by `<main>`'s padding. There are no CSS grid columns at the page level, no sidebar, and no wrapper-within-wrapper nesting. This makes the section order easy to change, the visual rhythm easy to understand, and the responsive behaviour straightforward to follow.

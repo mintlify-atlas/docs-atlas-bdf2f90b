@@ -1,7 +1,7 @@
 ---
 title: "Spring Animation Engine: mkSpring and the Spring Class"
 sidebarTitle: "Spring Engine"
-description: "Baseline ships a hand-rolled physics spring engine. Learn how the Spring class and mkSpring factory work, and how to tune tension and friction for your own animations."
+description: "Baseline's hand-rolled physics spring engine drives every transition. Learn how the Spring class, mkSpring factory, and tick loop work together."
 ---
 
 Baseline has no dependency on GSAP, Framer Motion, or any third-party animation library. Every animated transition — overlays, reveals, hover effects, stat counters — is driven by a ~50-line bespoke spring engine embedded directly in `index.html`. The engine models each animatable value as a damped harmonic oscillator, giving you physically natural motion that can't be replicated with CSS cubic-bezier easing alone.

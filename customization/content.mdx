@@ -1,7 +1,7 @@
 ---
-title: "Editing Text Content in Baseline"
+title: "Editing All Text Content and Copy Labels in Baseline"
 sidebarTitle: "Content"
-description: "A guide to updating every piece of user-facing copy in Baseline — headlines, taglines, nav links, CTA buttons, and modal form labels — all in one HTML file."
+description: "How to update every piece of user-facing copy in Baseline — nav links, hero headline, CTA buttons, footer columns, and booking form labels."
 ---
 
 Because Baseline is a **single-file template**, every word a visitor reads lives in exactly one place: `index.html`. There is no CMS, no build step, and no content file to synchronise — open the file in any text editor, make your change, save, and reload the browser. The sections below map each visible text element to its location in the file.
@@ -135,7 +135,7 @@ Edit the strings directly in the array to update the copy. For adding or removin
 
 ## Footer columns
 
-Below the footer CTA strip, three `<nav class="foot-col">` blocks form the sitemap. Each column has a heading (`<h3>`) and a list of anchor links:
+Below the footer CTA strip, the `<div class="foot-cols">` wrapper contains three `<nav>` blocks that form the sitemap. Each column has a heading (`<h3>`) and a list of anchor links:
 
 ```html
 <nav><h3>Programs</h3><ul>
@@ -165,7 +165,7 @@ Edit the `<h3>` text to rename a column heading, and edit the text nodes inside 
 The fourth column is the brand/address block (`.foot-brand`). To update the club name, email, phone, or physical address, find:
 
 ```html
-<p class="foot-blurb">A members' tennis club and academy …</p>
+<p class="foot-blurb">A members' tennis club and academy where focused coaching meets championship courts.</p>
 <address>
   <a href="mailto:play@baseline.club">play@baseline.club</a>
   <a href="tel:+12125550148">+1 (212) 555-0148</a>
